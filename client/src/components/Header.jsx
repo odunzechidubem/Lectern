@@ -1,8 +1,7 @@
-// src/components/Header.jsx
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-// --- THIS IS THE FIX: Import from 'react-redux', not 'redux' ---
-import { useSelector, useDispatch } from 'react-redux'; 
+import { useState, useEffect, useRef } from 'react';
+// --- NEW: Import useLocation ---
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { useLogoutMutation } from '../slices/usersApiSlice';
 import { clearCredentials } from '../slices/authSlice';
 import { FaSignInAlt, FaUser } from 'react-icons/fa';
@@ -11,11 +10,35 @@ const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // --- NEW: Get the current location object ---
+  const location = useLocation();
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [logoutApiCall] = useLogoutMutation();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleScroll = () => {
+        setIsDropdownOpen(false);
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isDropdownOpen]);
 
   const logoutHandler = async () => {
     try {
@@ -40,8 +63,7 @@ const Header = () => {
         <nav>
           <ul className="flex items-center space-x-6">
             {userInfo ? (
-              // If user is logged in
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="font-semibold flex items-center"
@@ -52,6 +74,27 @@ const Header = () => {
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                    
+                    {/* --- NEW: Conditional rendering for the dashboard link --- */}
+                    {userInfo.role === 'lecturer' && location.pathname !== '/lecturer/dashboard' && (
+                      <Link
+                        to="/lecturer/dashboard"
+                        onClick={handleDropdownItemClick}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Lecturer Dashboard
+                      </Link>
+                    )}
+                    {userInfo.role === 'student' && location.pathname !== '/student/dashboard' && (
+                      <Link
+                        to="/student/dashboard"
+                        onClick={handleDropdownItemClick}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        My Learning
+                      </Link>
+                    )}
+                    
                     <Link
                       to="/profile"
                       onClick={handleDropdownItemClick}
@@ -72,7 +115,7 @@ const Header = () => {
                 )}
               </div>
             ) : (
-              // If user is logged out
+              // Logged out links
               <>
                 <li>
                   <Link to="/login" className="flex items-center hover:text-gray-300">

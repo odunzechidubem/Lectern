@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRegisterMutation } from '../slices/usersApiSlice';
-import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -16,45 +15,68 @@ const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // --- NEW: State to track password validation status ---
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    specialChar: false,
+  });
+
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch(); // Note: useDispatch is not used here but is good to keep for future features
 
   const [register, { isLoading }] = useRegisterMutation();
   const { userInfo } = useSelector((state) => state.auth);
 
+  // Redirect if already logged in
   useEffect(() => {
     if (userInfo) {
       navigate('/');
     }
   }, [navigate, userInfo]);
 
-  // --- NEW: Password validation logic ---
-  const validatePassword = (password) => {
-    // Regex: At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
-  };
+  // --- NEW: useEffect for real-time password validation ---
+  useEffect(() => {
+    setPasswordValidation({
+      minLength: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      specialChar: /[@$!%*?&]/.test(password),
+    });
+  }, [password]); // This effect runs every time the password state changes
+
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean);
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    // --- NEW: Check password validity before submitting ---
-    if (!validatePassword(password)) {
-      toast.error('Password does not meet the requirements.');
-      return; // Stop the submission
+    if (!isPasswordValid) {
+      toast.error('Password does not meet all the requirements.');
+      return;
     }
 
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
-    } else {
-      try {
-        const res = await register({ name, email, password, role }).unwrap();
-        dispatch(setCredentials({ ...res }));
-        navigate('/');
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
+      return;
     }
+
+    try {
+      const res = await register({ name, email, password, role }).unwrap();
+      toast.success(res.message);
+      navigate('/login');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  // --- NEW: Helper function to get validation item styles ---
+  const getValidationItemClass = (isValid) => {
+    return `flex items-center text-sm ${
+      isValid ? 'text-green-600' : 'text-gray-500'
+    }`;
   };
 
   return (
@@ -62,7 +84,7 @@ const RegisterScreen = () => {
       <form className="p-8 mt-10 bg-white rounded shadow-md w-96" onSubmit={submitHandler}>
         <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign Up</h1>
 
-        {/* --- Form fields remain the same --- */}
+        {/* Form fields */}
         <div className="mb-4">
           <label className="block text-gray-700 mb-2" htmlFor="name">Name</label>
           <input type="text" id="name" className="w-full px-3 py-2 border rounded" value={name} onChange={(e) => setName(e.target.value)} />
@@ -71,8 +93,6 @@ const RegisterScreen = () => {
           <label className="block text-gray-700 mb-2" htmlFor="email">Email Address</label>
           <input type="email" id="email" className="w-full px-3 py-2 border rounded" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
-
-        {/* --- Updated Password Field with Requirements --- */}
         <div className="mb-4">
           <label className="block text-gray-700 mb-2" htmlFor="password">Password</label>
           <div className="relative">
@@ -87,20 +107,32 @@ const RegisterScreen = () => {
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
-          {/* --- NEW: Visual feedback for password requirements --- */}
-          <div className="text-xs text-gray-500 mt-2">
-            <p>Password must contain:</p>
-            <ul className="list-disc list-inside">
-              <li>At least 8 characters</li>
-              <li>An uppercase letter (A-Z)</li>
-              <li>A lowercase letter (a-z)</li>
-              <li>A number (0-9)</li>
-              <li>A special character (@, $, !, %, *, ?, &)</li>
-            </ul>
+
+          {/* --- NEW: Dynamic password validation checklist --- */}
+          <div className="grid grid-cols-2 gap-x-4 mt-2">
+            <div className={getValidationItemClass(passwordValidation.minLength)}>
+              {passwordValidation.minLength ? <FaCheckCircle className="mr-2" /> : <FaTimesCircle className="mr-2" />}
+              8+ characters
+            </div>
+            <div className={getValidationItemClass(passwordValidation.uppercase)}>
+              {passwordValidation.uppercase ? <FaCheckCircle className="mr-2" /> : <FaTimesCircle className="mr-2" />}
+              Uppercase
+            </div>
+            <div className={getValidationItemClass(passwordValidation.lowercase)}>
+              {passwordValidation.lowercase ? <FaCheckCircle className="mr-2" /> : <FaTimesCircle className="mr-2" />}
+              Lowercase
+            </div>
+            <div className={getValidationItemClass(passwordValidation.number)}>
+              {passwordValidation.number ? <FaCheckCircle className="mr-2" /> : <FaTimesCircle className="mr-2" />}
+              Number
+            </div>
+            <div className={getValidationItemClass(passwordValidation.specialChar)}>
+              {passwordValidation.specialChar ? <FaCheckCircle className="mr-2" /> : <FaTimesCircle className="mr-2" />}
+              Symbol
+            </div>
           </div>
         </div>
 
-        {/* Confirm Password Field */}
         <div className="mb-6">
           <label className="block text-gray-700 mb-2" htmlFor="confirmPassword">Confirm Password</label>
           <div className="relative">
@@ -117,7 +149,6 @@ const RegisterScreen = () => {
           </div>
         </div>
         
-        {/* Role and Submit Button */}
         <div className="mb-6">
           <label className="block text-gray-700 mb-2">I am a:</label>
           <select className="w-full px-3 py-2 border rounded bg-white" value={role} onChange={(e) => setRole(e.target.value)}>

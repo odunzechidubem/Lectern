@@ -1,16 +1,29 @@
-// src/screens/CourseScreen.jsx
 import { useParams, Link } from 'react-router-dom';
-import { useGetCourseDetailsQuery } from '../slices/coursesApiSlice';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
+import { useGetCourseDetailsQuery, useEnrollInCourseMutation } from '../slices/coursesApiSlice';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
-import { FaPlayCircle, FaFilePdf } from 'react-icons/fa'; // Icons for lectures
+import { FaPlayCircle, FaFilePdf } from 'react-icons/fa';
 
 const CourseScreen = () => {
-  // Get the courseId from the URL parameters
   const { id: courseId } = useParams();
+  const { userInfo } = useSelector((state) => state.auth);
 
-  // Use the hook to fetch course details
-  const { data: course, isLoading, error } = useGetCourseDetailsQuery(courseId);
+  const { data: course, isLoading, refetch, error } = useGetCourseDetailsQuery(courseId);
+  const [enrollInCourse, { isLoading: isEnrolling }] = useEnrollInCourseMutation();
+
+  const handleEnroll = async () => {
+    try {
+      await enrollInCourse(courseId).unwrap();
+      toast.success('Enrolled successfully!');
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const isEnrolled = course?.students?.some((s) => s._id === userInfo?._id);
 
   return (
     <div>
@@ -18,48 +31,48 @@ const CourseScreen = () => {
         Go Back
       </Link>
 
-      {isLoading ? (
-        <Loader />
-      ) : error ? (
-        <Message variant='error'>{error?.data?.message || error.error}</Message>
-      ) : (
+      {isLoading ? <Loader /> : error ? <Message variant='error'>{error?.data?.message || error.error}</Message> : (
         <>
-          {/* Course Header Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-8">
             <h1 className="text-3xl font-bold mb-2 text-gray-800">{course.title}</h1>
-            <p className="text-sm text-gray-500 mb-4">By {course.lecturer.name}</p>
+            <p className="text-sm text-gray-500 mb-4">By {course?.lecturer?.name || 'Deleted User'}</p>
             <p className="text-gray-700">{course.description}</p>
+            
+            {userInfo && userInfo.role === 'student' && !isEnrolled && (
+              <button onClick={handleEnroll} disabled={isEnrolling} className="mt-4 w-full bg-green-500 text-white font-semibold py-2 px-4 rounded hover:bg-green-600">
+                {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+              </button>
+            )}
+            {userInfo && userInfo.role === 'student' && isEnrolled && (
+              <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md text-center font-semibold">You are enrolled in this course.</div>
+            )}
           </div>
 
-          {/* Lectures List Section */}
           <div>
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Lectures</h2>
-            {course.lectures && course.lectures.length > 0 ? (
-              <ul className="space-y-4">
-                {course.lectures.map((lecture, index) => (
-                  <li key={index} className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
-                    <div className="flex items-center">
-                      <FaPlayCircle className="text-blue-500 mr-4 text-2xl" />
-                      <div>
-                        <h3 className="font-semibold text-gray-700">{lecture.title}</h3>
-                      </div>
-                    </div>
-                    {lecture.notesUrl && (
-                      <a 
-                        href={lecture.notesUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="flex items-center text-red-500 hover:text-red-700"
+            {(isEnrolled || userInfo?.role === 'lecturer') ? (
+              course.lectures?.length > 0 ? (
+                <ul className="space-y-4">
+                  {course.lectures.map((lecture, index) => (
+                    <li key={lecture._id} className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center transition-shadow hover:shadow-md">
+                      <Link 
+                        to={`/course/${course._id}/lecture/${index}`}
+                        className="flex items-center group"
                       >
-                        <FaFilePdf className="mr-2" />
-                        View Notes
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                        <FaPlayCircle className="text-blue-500 mr-4 text-2xl group-hover:text-blue-700" />
+                        <h3 className="font-semibold text-gray-700 group-hover:text-blue-700">{lecture.title}</h3>
+                      </Link>
+                      {lecture.notesUrl && (
+                        <a href={lecture.notesUrl} target="_blank" rel="noopener noreferrer" className="flex items-center text-red-500 hover:text-red-700">
+                          <FaFilePdf className="mr-2" /> View Notes
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : <Message>No lectures have been added yet.</Message>
             ) : (
-              <Message>No lectures have been added to this course yet.</Message>
+              <Message>You must be enrolled in this course to view the lectures.</Message>
             )}
           </div>
         </>
@@ -68,4 +81,5 @@ const CourseScreen = () => {
   );
 };
 
+// --- THIS IS THE FIX ---
 export default CourseScreen;

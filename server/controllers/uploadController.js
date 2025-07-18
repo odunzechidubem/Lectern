@@ -1,4 +1,3 @@
-// server/controllers/uploadController.js
 import asyncHandler from 'express-async-handler';
 import cloudinary from '../config/cloudinary.js';
 
@@ -11,13 +10,18 @@ const uploadFile = asyncHandler(async (req, res) => {
     throw new Error('No file uploaded.');
   }
 
+  // --- THIS IS THE NEW, MORE EXPLICIT CONFIGURATION ---
+  const options = {
+    folder: 'lms_uploads',
+    resource_type: 'auto', // Keep auto-detection for video vs. raw
+    access_mode: 'public', // Force the asset to be public
+    type: 'upload',        // Ensure it's a standard upload type
+  };
+
   // Use a promise to handle the stream upload
   const uploadPromise = new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: 'auto', // Automatically detect video or raw for PDF
-        folder: 'lms_uploads', // Optional: store in a specific folder in Cloudinary
-      },
+      options, // Pass the explicit options
       (error, result) => {
         if (error) {
           reject(error);
@@ -26,7 +30,6 @@ const uploadFile = asyncHandler(async (req, res) => {
         }
       }
     );
-    // Pipe the file buffer from multer into the upload stream
     uploadStream.end(req.file.buffer);
   });
 

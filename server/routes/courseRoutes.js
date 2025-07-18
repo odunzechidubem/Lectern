@@ -1,29 +1,28 @@
 import express from 'express';
 const router = express.Router();
 import {
-  createCourse,
-  addLectureToCourse,
-  getCourses,
-  getCourseById,
-  getMyCourses,
+  createCourse, addLectureToCourse, getCourses, getCourseById, getMyCourses,
+  updateCourse, enrollInCourse, deleteLectureFromCourse, deleteCourse,
 } from '../controllers/courseController.js';
-import { protect, lecturer } from '../middleware/authMiddleware.js';
+import { protect, lecturer, student } from '../middleware/authMiddleware.js';
 
-// --- POST Routes (Creating/Updating) ---
-router.post('/', protect, lecturer, createCourse);
-router.post('/:id/lectures', protect, lecturer, addLectureToCourse);
+// Course routes
+router.route('/')
+  .get(getCourses)
+  .post(protect, lecturer, createCourse);
 
-// --- GET Routes (Reading) ---
-// Note the order: specific routes come before dynamic ones.
+router.route('/mycourses').get(protect, lecturer, getMyCourses);
 
-// Get all courses (Public)
-router.get('/', getCourses);
+router.route('/:id')
+  .get(getCourseById)
+  .put(protect, lecturer, updateCourse)
+  .delete(protect, lecturer, deleteCourse);
 
-// Get the logged-in lecturer's courses (Protected)
-router.get('/mycourses', protect, lecturer, getMyCourses);
+// Lecture routes
+router.route('/:id/lectures').post(protect, lecturer, addLectureToCourse);
+router.route('/:courseId/lectures/:lectureId').delete(protect, lecturer, deleteLectureFromCourse);
 
-// Get a single course by ID (Public)
-router.get('/:id', getCourseById);
-
+// Student enrollment route
+router.route('/:id/enroll').post(protect, student, enrollInCourse);
 
 export default router;
