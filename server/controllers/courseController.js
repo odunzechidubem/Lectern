@@ -2,7 +2,9 @@ import asyncHandler from 'express-async-handler';
 import Course from '../models/courseModel.js';
 import User from '../models/userModel.js';
 import Assignment from '../models/assignmentModel.js';
+import Notification from '../models/notificationModel.js';
 
+// GET all courses
 const getCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({});
   const populatedCourses = await Promise.all(
@@ -16,6 +18,7 @@ const getCourses = asyncHandler(async (req, res) => {
   res.json(populatedCourses);
 });
 
+// GET a single course by ID
 const getCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -35,11 +38,13 @@ const getCourseById = asyncHandler(async (req, res) => {
   }
 });
 
+// GET a lecturer's own courses
 const getMyCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({ lecturer: req.user._id });
   res.json(courses);
 });
 
+// CREATE a new course
 const createCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   if (!title || !description) { res.status(400); throw new Error('Title and description are required'); }
@@ -48,6 +53,7 @@ const createCourse = asyncHandler(async (req, res) => {
   res.status(201).json(createdCourse);
 });
 
+// UPDATE a course
 const updateCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   const course = await Course.findById(req.params.id);
@@ -62,6 +68,7 @@ const updateCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// DELETE a course
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -73,6 +80,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// ADD a lecture
 const addLectureToCourse = asyncHandler(async (req, res) => {
   const { title, videoUrl, notesUrl } = req.body;
   const course = await Course.findById(req.params.id);
@@ -80,12 +88,19 @@ const addLectureToCourse = asyncHandler(async (req, res) => {
     if (course.lecturer.toString() !== req.user._id.toString()) { res.status(403); throw new Error('Not authorized'); }
     course.lectures.push({ title, videoUrl, notesUrl });
     await course.save();
+    try {
+      const message = `A new lecture "${title}" was added to the course "${course.title}".`;
+      const link = `/course/${course._id}`;
+      const notifications = course.students.map(studentId => ({ user: studentId, message, link }));
+      if (notifications.length > 0) { await Notification.insertMany(notifications); }
+    } catch (error) { console.error('Failed to create notifications for new lecture:', error); }
     res.status(201).json(course);
   } else {
     res.status(404); throw new Error('Course not found');
   }
 });
 
+// DELETE a lecture
 const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.courseId);
   if (course) {
@@ -98,6 +113,7 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// ENROLL a student
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -110,29 +126,4 @@ const enrollInCourse = asyncHandler(async (req, res) => {
   }
 });
 
-const createAnnouncement = asyncHandler(async (req, res) => {
-  const { content } = req.body;
-  if (!content) {
-    res.status(400);
-    throw new Error('Announcement content cannot be empty');
-  }
-  const course = await Course.findById(req.params.id);
-  if (course) {
-    if (course.lecturer.toString() !== req.user._id.toString()) {
-      res.status(403);
-      throw new Error('User not authorized to make announcements for this course');
-    }
-    course.announcements.push({ content });
-    await course.save();
-    res.status(201).json(course.announcements);
-  } else {
-    res.status(404);
-    throw new Error('Course not found');
-  }
-});
-
-export {
-  createCourse, addLectureToCourse, getCourses, getCourseById, getMyCourses,
-  updateCourse, enrollInCourse, deleteLectureFromCourse, deleteCourse,
-  createAnnouncement,
-};
+export { createCourse, addLectureToCourse, getCourses, getCourseById, getMyCourses, updateCourse, enrollInCourse, deleteLectureFromCourse, deleteCourse };

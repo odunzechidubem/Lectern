@@ -7,8 +7,6 @@ export default {
   theme: {
     extend: {},
   },
-  // --- ADD THIS PLUGINS SECTION ---
-  plugins: [
-    require('@tailwindcss/line-clamp'),
-  ],
+  // The plugins array is now empty, which is correct.
+  plugins: [],
 }

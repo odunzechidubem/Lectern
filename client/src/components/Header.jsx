@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useLogoutMutation } from '../slices/usersApiSlice';
 import { clearCredentials } from '../slices/authSlice';
 import { FaSignInAlt, FaUser } from 'react-icons/fa';
+import Notifications from './Notifications'; // <-- IMPORT
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -36,18 +37,24 @@ const Header = () => {
         <nav>
           <ul className="flex items-center space-x-6">
             {userInfo ? (
-              <div className="relative" ref={dropdownRef}>
-                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="font-semibold flex items-center">{userInfo.name}<span className="ml-1">▾</span></button>
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                    <Link to={userInfo.role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard'} onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</Link>
-                    {userInfo.role === 'student' && (
-                       <Link to="/my-grades" onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Grades</Link>
-                    )}
-                    <button onClick={() => { logoutHandler(); handleDropdownItemClick(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
-                  </div>
+              <>
+                {/* --- ADD NOTIFICATION BELL FOR STUDENTS --- */}
+                {userInfo.role === 'student' && (
+                  <li>
+                    <Notifications />
+                  </li>
                 )}
-              </div>
+                <li className="relative" ref={dropdownRef}>
+                  <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="font-semibold flex items-center">{userInfo.name}<span className="ml-1">▾</span></button>
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                      <Link to={userInfo.role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard'} onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</Link>
+                      {userInfo.role === 'student' && (<Link to="/my-grades" onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Grades</Link>)}
+                      <button onClick={() => { logoutHandler(); handleDropdownItemClick(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                    </div>
+                  )}
+                </li>
+              </>
             ) : (
               <>
                 <li><Link to="/login" className="flex items-center hover:text-gray-300"><FaSignInAlt className="mr-2" /> Sign In</Link></li>
@@ -60,5 +67,4 @@ const Header = () => {
     </header>
   );
 };
-
 export default Header;

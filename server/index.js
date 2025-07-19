@@ -10,6 +10,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import assignmentRoutes from './routes/assignmentRoutes.js';
 import submissionRoutes from './routes/submissionRoutes.js';
 import announcementRoutes from './routes/announcementRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js'; // <-- IMPORT
 
 dotenv.config();
 connectDB();
@@ -25,6 +26,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/notifications', notificationRoutes); // <-- USE NEW ROUTES
 app.use(notFound);
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
