@@ -1,36 +1,36 @@
-// src/slices/usersApiSlice.js
 import { apiSlice } from './apiSlice';
 const USERS_URL = '/api/users';
 
 export const usersApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/login`,
-        method: 'POST',
-        body: data,
-      }),
+      query: (data) => ({ url: `${USERS_URL}/login`, method: 'POST', body: data }),
     }),
     register: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/register`,
-        method: 'POST',
-        body: data,
-      }),
+      query: (data) => ({ url: `${USERS_URL}/register`, method: 'POST', body: data }),
     }),
-    // --- ADD THIS LOGOUT MUTATION ---
     logout: builder.mutation({
+      query: () => ({ url: `${USERS_URL}/logout`, method: 'POST' }),
+    }),
+    getEnrolledCourses: builder.query({
       query: () => ({
-        url: `${USERS_URL}/logout`, // We can create this backend route later if needed
-        method: 'POST',
+        url: `${USERS_URL}/enrolled-courses`,
       }),
+      providesTags: ['EnrolledCourses'],
+    }),
+    getMySubmissions: builder.query({
+      query: () => ({
+        url: `${USERS_URL}/my-submissions`,
+      }),
+      providesTags: ['MySubmissions'],
     }),
   }),
 });
 
-// Export the new hook
 export const {
   useLoginMutation,
   useRegisterMutation,
-  useLogoutMutation, // <-- EXPORT
+  useLogoutMutation,
+  useGetEnrolledCoursesQuery,
+  useGetMySubmissionsQuery,
 } = usersApiSlice;

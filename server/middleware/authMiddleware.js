@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
 
+// Checks for a valid token in the cookie and attaches user to req
 const protect = async (req, res, next) => {
   let token;
   if (req.cookies.jwt) {
@@ -19,6 +20,7 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Checks if the logged-in user is a lecturer
 const lecturer = (req, res, next) => {
   if (req.user && req.user.role === 'lecturer') {
     next();
@@ -28,7 +30,7 @@ const lecturer = (req, res, next) => {
   }
 };
 
-// --- THIS IS THE NEW FUNCTION ---
+// Checks if the logged-in user is a student
 const student = (req, res, next) => {
   if (req.user && req.user.role === 'student') {
     next();
@@ -38,26 +40,35 @@ const student = (req, res, next) => {
   }
 };
 
+// Checks if there is simply a logged-in user (of any role)
+const isUser = (req, res, next) => {
+  if (req.user) {
+    next();
+  } else {
+    res.status(401);
+    throw new Error('Not authorized, no user data');
+  }
+};
+
+// Middleware for 404 Not Found errors
 const notFound = (req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   res.status(404);
   next(error);
 };
 
+// Generic error handler
 const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
-
   if (err.name === 'CastError' && err.kind === 'ObjectId') {
     statusCode = 404;
     message = 'Resource not found';
   }
-
   res.status(statusCode).json({
     message: message,
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 };
 
-// --- UPDATED EXPORTS ---
-export { protect, lecturer, student, notFound, errorHandler };
+export { protect, lecturer, student, isUser, notFound, errorHandler };

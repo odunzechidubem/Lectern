@@ -1,13 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // This content array is the key part.
-  // It tells Tailwind to look for class names in these files.
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}", // <-- This line is crucial
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {},
   },
-  plugins: [],
+  // --- ADD THIS PLUGINS SECTION ---
+  plugins: [
+    require('@tailwindcss/line-clamp'),
+  ],
 }

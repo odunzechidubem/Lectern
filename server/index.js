@@ -9,7 +9,8 @@ import { notFound, errorHandler } from './middleware/authMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
-import assignmentRoutes from './routes/assignmentRoutes.js'; // <-- Import
+import assignmentRoutes from './routes/assignmentRoutes.js';
+import submissionRoutes from './routes/submissionRoutes.js'; // <-- IMPORT
 
 dotenv.config();
 connectDB();
@@ -33,7 +34,8 @@ app.get('/', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/assignments', assignmentRoutes); // <-- Use the new routes
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/submissions', submissionRoutes); // <-- USE NEW ROUTES
 
 app.use(notFound);
 app.use(errorHandler);

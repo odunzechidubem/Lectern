@@ -1,20 +1,23 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Component and Screen imports
 import Header from './components/Header';
 import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import CourseScreen from './screens/CourseScreen';
+import LectureScreen from './screens/LectureScreen';
+import AssignmentScreen from './screens/AssignmentScreen';
+import SubmissionsScreen from './screens/SubmissionsScreen';
+import MyGradesScreen from './screens/MyGradesScreen';
+import PrivateRoute from './components/PrivateRoute';
 import LecturerRoute from './components/LecturerRoute';
+import StudentRoute from './components/StudentRoute';
 import LecturerDashboardScreen from './screens/LecturerDashboardScreen';
+import StudentDashboardScreen from './screens/StudentDashboardScreen';
 import CreateCourseScreen from './screens/CreateCourseScreen';
 import CourseEditScreen from './screens/CourseEditScreen';
-import PrivateRoute from './components/PrivateRoute'; // <-- IMPORT
-import LectureScreen from './screens/LectureScreen'; // <-- IMPORT
 
 function App() {
   return (
@@ -24,22 +27,26 @@ function App() {
       <main className="py-8">
         <div className="container mx-auto px-4">
           <Routes>
-            {/* --- Public Routes --- */}
             <Route path="/" element={<HomeScreen />} />
             <Route path="/login" element={<LoginScreen />} />
             <Route path="/register" element={<RegisterScreen />} />
             <Route path="/course/:id" element={<CourseScreen />} />
-
-            {/* --- Private Routes (Any Logged-in User) --- */}
+            
             <Route path="" element={<PrivateRoute />}>
               <Route path="/course/:courseId/lecture/:lectureIndex" element={<LectureScreen />} />
             </Route>
 
-            {/* --- Lecturer-Only Private Routes --- */}
             <Route path="" element={<LecturerRoute />}>
               <Route path="/lecturer/dashboard" element={<LecturerDashboardScreen />} />
               <Route path="/lecturer/course/create" element={<CreateCourseScreen />} />
               <Route path="/lecturer/course/:id/edit" element={<CourseEditScreen />} />
+              <Route path="/lecturer/course/:courseId/assignment/:assignmentId/submissions" element={<SubmissionsScreen />} />
+            </Route>
+
+            <Route path="" element={<StudentRoute />}>
+              <Route path="/student/dashboard" element={<StudentDashboardScreen />} />
+              <Route path="/course/:courseId/assignment/:assignmentId" element={<AssignmentScreen />} />
+              <Route path="/my-grades" element={<MyGradesScreen />} />
             </Route>
           </Routes>
         </div>
@@ -47,5 +54,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;

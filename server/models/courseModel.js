@@ -1,33 +1,31 @@
 import mongoose from 'mongoose';
 
-// The lecture sub-document schema must be fully defined
 const lectureSchema = mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  videoUrl: {
-    type: String,
-    required: true,
-  },
-  notesUrl: {
-    type: String,
-    required: false,
-  },
+  title: { type: String, required: true },
+  videoUrl: { type: String, required: true },
+  notesUrl: { type: String, required: false },
 });
+
+// --- NEW SUB-DOCUMENT SCHEMA FOR ANNOUNCEMENTS ---
+const announcementSchema = mongoose.Schema(
+  {
+    content: { type: String, required: true },
+  },
+  { timestamps: true } // Adds createdAt and updatedAt automatically
+);
 
 const courseSchema = mongoose.Schema(
   {
-    title: { type: String, required: [true, 'Please add a course title'], trim: true },
-    description: { type: String, required: [true, 'Please add a description'] },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true },
     lecturer: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
-    lectures: [lectureSchema], // Use the fully defined schema
+    lectures: [lectureSchema],
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     assignments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' }],
+    // --- THIS IS THE NEW FIELD ---
+    announcements: [announcementSchema],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 const Course = mongoose.model('Course', courseSchema);
