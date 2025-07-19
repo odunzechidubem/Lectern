@@ -5,15 +5,10 @@ import {
   getAnnouncementsForCourse,
   deleteAnnouncement,
 } from '../controllers/announcementController.js';
-import { protect, lecturer } from '../middleware/authMiddleware.js';
+import { protect, lecturer, isUser } from '../middleware/authMiddleware.js';
 
-// POST /api/announcements - Create an announcement
 router.route('/').post(protect, lecturer, createAnnouncement);
-
-// GET /api/announcements/:courseId - Get all announcements for a course
-router.route('/:courseId').get(protect, getAnnouncementsForCourse);
-
-// DELETE /api/announcements/:id - Delete a specific announcement
+router.route('/course/:courseId').get(protect, isUser, getAnnouncementsForCourse);
 router.route('/:id').delete(protect, lecturer, deleteAnnouncement);
 
 export default router;

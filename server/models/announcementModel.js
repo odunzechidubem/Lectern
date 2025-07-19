@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const announcementSchema = mongoose.Schema(
+const announcementSchema = new mongoose.Schema(
   {
     course: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,11 +14,12 @@ const announcementSchema = mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Announcement content cannot be empty.'],
+      required: true,
+      trim: true,
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
