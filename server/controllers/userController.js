@@ -38,16 +38,17 @@ const registerUser = asyncHandler(async (req, res) => {
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
-  if (!user || !(await user.matchPassword(password))) {
+  if (user && (await user.matchPassword(password))) {
+    if (!user.isVerified) {
+      res.status(403);
+      throw new Error('Please verify your email before logging in.');
+    }
+    generateToken(res, user._id);
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role });
+  } else {
     res.status(401);
     throw new Error('Invalid email or password');
   }
-  if (!user.isVerified) {
-    res.status(403);
-    throw new Error('Please verify your email before logging in.');
-  }
-  generateToken(res, user._id);
-  res.json({ _id: user._id, name: user.name, email: user.email, role: user.role });
 });
 
 // @desc    Verify Email
@@ -73,25 +74,63 @@ const logoutUser = (req, res) => {
 
 // @desc    Get courses a student is enrolled in
 const getEnrolledCourses = asyncHandler(async (req, res) => {
-  const courses = await Course.find({ students: req.user._id })
-    .populate('lecturer', 'name');
+  const courses = await Course.find({ students: req.user._id }).populate('lecturer', 'name');
   res.status(200).json(courses);
 });
 
 // @desc    Get all submissions for the logged-in student
 const getMySubmissions = asyncHandler(async (req, res) => {
   const submissions = await Submission.find({ student: req.user._id })
-    .populate({
-      path: 'course',
-      select: 'title',
-    })
-    .populate({
-      path: 'assignment',
-      select: 'title',
-    })
+    .populate({ path: 'course', select: 'title' })
+    .populate({ path: 'assignment', select: 'title' })
     .sort({ createdAt: -1 });
-
   res.status(200).json(submissions);
 });
 
-export { registerUser, authUser, logoutUser, verifyEmail, getEnrolledCourses, getMySubmissions };
+// @desc    Request a password reset email
+const forgotPassword = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+  }
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+  const message = `<p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in 10 minutes.</p>`;
+  try {
+    await sendEmail({ email: user.email, subject: 'LMS Password Reset Request', html: message });
+    res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+  } catch (err) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    res.status(500);
+    throw new Error('Email could not be sent. Please try again later.');
+  }
+});
+
+// @desc    Reset password using a token
+const resetPassword = asyncHandler(async (req, res) => {
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+  const user = await User.findOne({ passwordResetToken: hashedToken, passwordResetExpires: { $gt: Date.now() } });
+  if (!user) {
+    res.status(400);
+    throw new Error('Token is invalid or has expired.');
+  }
+  user.password = req.body.password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+  res.status(200).json({ message: 'Password reset successful. You can now log in.' });
+});
+
+export {
+  registerUser,
+  authUser,
+  logoutUser,
+  verifyEmail,
+  getEnrolledCourses,
+  getMySubmissions,
+  forgotPassword,
+  resetPassword,
+};
