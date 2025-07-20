@@ -14,6 +14,7 @@ import LectureScreen from './screens/LectureScreen';
 import AssignmentScreen from './screens/AssignmentScreen';
 import SubmissionsScreen from './screens/SubmissionsScreen';
 import MyGradesScreen from './screens/MyGradesScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import PrivateRoute from './components/PrivateRoute';
 import LecturerRoute from './components/LecturerRoute';
 import StudentRoute from './components/StudentRoute';
@@ -41,6 +42,7 @@ function App() {
             {/* --- Private Routes (All roles) --- */}
             <Route path="" element={<PrivateRoute />}>
               <Route path="/course/:courseId/lecture/:lectureIndex" element={<LectureScreen />} />
+              <Route path="/profile" element={<ProfileScreen />} />
             </Route>
 
             {/* --- Private (Lecturer only) --- */}

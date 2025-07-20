@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useLogoutMutation } from '../slices/usersApiSlice';
 import { clearCredentials } from '../slices/authSlice';
 import { FaSignInAlt, FaUser } from 'react-icons/fa';
-import Notifications from './Notifications'; // <-- IMPORT
+import Notifications from './Notifications';
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -15,19 +15,19 @@ const Header = () => {
   const [logoutApiCall] = useLogoutMutation();
 
   useEffect(() => {
-    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) { setIsDropdownOpen(false); } };
-    const handleScroll = () => setIsDropdownOpen(false);
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('scroll', handleScroll, true);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
-    };
+    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsDropdownOpen(false); };
+    if (isDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  const logoutHandler = async () => { try { await logoutApiCall().unwrap(); dispatch(clearCredentials()); navigate('/login'); } catch (err) { console.error(err); } };
+  const logoutHandler = async () => {
+    try {
+      await logoutApiCall().unwrap();
+      dispatch(clearCredentials());
+      navigate('/login');
+    } catch (err) { console.error(err); }
+  };
+  
   const handleDropdownItemClick = () => setIsDropdownOpen(false);
 
   return (
@@ -35,20 +35,20 @@ const Header = () => {
       <div className="container mx-auto flex justify-between items-center p-4">
         <Link to="/" className="text-xl font-bold tracking-wider">LMS Platform</Link>
         <nav>
-          <ul className="flex items-center space-x-6">
+          <ul className="flex items-center space-x-4">
             {userInfo ? (
               <>
-                {/* --- ADD NOTIFICATION BELL FOR STUDENTS --- */}
-                {userInfo.role === 'student' && (
-                  <li>
-                    <Notifications />
-                  </li>
-                )}
+                {userInfo.role === 'student' && (<li><Notifications /></li>)}
                 <li className="relative" ref={dropdownRef}>
-                  <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="font-semibold flex items-center">{userInfo.name}<span className="ml-1">▾</span></button>
+                  <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="font-semibold flex items-center">
+                    <img src={userInfo.profileImage || `https://ui-avatars.com/api/?name=${userInfo.name.split(' ').join('+')}&background=random&color=fff`} alt="Profile" className="w-8 h-8 rounded-full mr-2 object-cover" />
+                    {userInfo.name}
+                    <span className="ml-1 text-xs">▾</span>
+                  </button>
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                       <Link to={userInfo.role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard'} onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</Link>
+                      <Link to="/profile" onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</Link>
                       {userInfo.role === 'student' && (<Link to="/my-grades" onClick={handleDropdownItemClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Grades</Link>)}
                       <button onClick={() => { logoutHandler(); handleDropdownItemClick(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
                     </div>

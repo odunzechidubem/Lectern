@@ -7,10 +7,10 @@ const userSchema = mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, required: true, enum: ['student', 'lecturer'], default: 'student' },
+  profileImage: { type: String, required: false, default: '' },
   isVerified: { type: Boolean, default: false },
   verificationToken: String,
   verificationTokenExpires: Date,
-  // --- NEW FIELDS ---
   passwordResetToken: String,
   passwordResetExpires: Date,
 }, { timestamps: true });
@@ -34,12 +34,11 @@ userSchema.methods.createVerificationToken = function () {
   return token;
 };
 
-// --- NEW METHOD ---
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // Expires in 10 minutes
-  return resetToken; // Return the unhashed token
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);

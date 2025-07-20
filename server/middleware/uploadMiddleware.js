@@ -1,4 +1,3 @@
-// server/middleware/uploadMiddleware.js
 import multer from 'multer';
 import path from 'path';
 
@@ -7,8 +6,10 @@ const storage = multer.memoryStorage();
 
 // Middleware to check file type
 function checkFileType(file, cb) {
-  // Allowed extensions
-  const filetypes = /mp4|mov|avi|pdf/;
+  // --- THIS IS THE FIX ---
+  // Add common image file extensions to the list of allowed types
+  const filetypes = /jpeg|jpg|png|gif|mp4|mov|avi|pdf/;
+  
   // Check the extension name
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   // Check the mime type
@@ -17,7 +18,8 @@ function checkFileType(file, cb) {
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Error: Only video files (mp4, mov, avi) and PDF files are allowed!'));
+    // Update the error message to include images
+    cb(new Error('Error: Only images (jpeg, png), videos (mp4, mov), and PDFs are allowed!'));
   }
 }
 
