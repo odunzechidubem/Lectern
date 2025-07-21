@@ -11,23 +11,23 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState(true);
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [login, { isLoading }] = useLoginMutation();
   const { userInfo } = useSelector((state) => state.auth);
 
-  // --- THIS IS THE CRITICAL FIX ---
-  // This useEffect is now the SINGLE source of truth for redirection.
-  // It runs whenever userInfo changes.
   useEffect(() => {
     if (userInfo) {
-      if (userInfo.role === 'lecturer') {
+      if (userInfo.role === 'superAdmin') {
+        navigate('/admin/dashboard');
+      } else if (userInfo.role === 'lecturer') {
         navigate('/lecturer/dashboard');
       } else if (userInfo.role === 'student') {
-        navigate('/student/dashboard');
-      } else {
-        navigate('/'); // Fallback
+        if (userInfo.hasEnrolledCourses) {
+          navigate('/student/dashboard');
+        } else {
+          navigate('/');
+        }
       }
     }
   }, [userInfo, navigate]);
@@ -49,12 +49,14 @@ const LoginScreen = () => {
       return toast.error('Please enter a valid email address.');
     }
     try {
-      // The handler's only job is to call the API and update the state.
       const res = await login({ email, password }).unwrap();
       dispatch(setCredentials({ ...res }));
-      // The useEffect will now handle the navigation automatically.
     } catch (err) {
       toast.error(err?.data?.message || err.error);
+      // --- THIS IS THE FIX ---
+      // Clear both fields on a failed login attempt
+      setEmail('');
+      setPassword('');
     }
   };
 
