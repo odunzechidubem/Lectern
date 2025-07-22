@@ -18,13 +18,33 @@ const Header = () => {
   const { data: settings } = useGetSettingsQuery();
 
   useEffect(() => {
-    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsDropdownOpen(false); };
-    if (isDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isDropdownOpen]);
 
-  const logoutHandler = async () => { try { await logoutApiCall().unwrap(); dispatch(clearCredentials()); navigate('/login'); } catch (err) { console.error(err); } };
-  const handleNavigate = (path) => { setIsDropdownOpen(false); navigate(path); };
+  const logoutHandler = async () => {
+    try {
+      await logoutApiCall().unwrap();
+      dispatch(clearCredentials());
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNavigate = (path) => {
+    setIsDropdownOpen(false);
+    navigate(path);
+  };
 
   return (
     <header className="bg-gray-800 text-white shadow-lg">
@@ -35,12 +55,10 @@ const Header = () => {
         >
           <img 
             src={settings?.logoUrl || '/logo.png'} 
-            alt="Site Logo" 
+            alt={settings?.siteName || 'LMS Platform Logo'} 
             className="h-10 w-auto" 
           />
-          {/* --- THIS IS THE FIX --- */}
-          {/* Display the site name next to the logo */}
-          <span className="text-xl font-bold tracking-wider ml-3">
+          <span className="hidden sm:block text-xl font-bold tracking-wider ml-3">
             {settings?.siteName || 'LMS Platform'}
           </span>
         </Link>
@@ -48,7 +66,13 @@ const Header = () => {
           <ul className="flex items-center space-x-4">
             {userInfo ? (
               <>
-                {userInfo.role === 'student' && (<li><Notifications /></li>)}
+                {/* --- THIS IS THE FIX --- */}
+                {/* The notification bell will now render for both students and lecturers */}
+                {(userInfo.role === 'student' || userInfo.role === 'lecturer') && (
+                  <li>
+                    <Notifications />
+                  </li>
+                )}
                 <li className="relative" ref={dropdownRef}>
                   <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="font-semibold flex items-center">
                     <img src={userInfo.profileImage || `https://ui-avatars.com/api/?name=${userInfo.name.split(' ').join('+')}&background=random&color=fff`} alt="Profile" className="w-8 h-8 rounded-full mr-2 object-cover" />

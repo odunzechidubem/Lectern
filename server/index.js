@@ -2,6 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { createServer } from 'http';
+import { initSocketServer } from './socket.js';
 import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/authMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
@@ -13,11 +15,14 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import footerLinkRoutes from './routes/footerLinkRoutes.js'; // <-- IMPORT
+import footerLinkRoutes from './routes/footerLinkRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 connectDB();
 const app = express();
+const httpServer = createServer(app);
+initSocketServer(httpServer);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -32,8 +37,9 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
-app.use('/api/footer-links', footerLinkRoutes); // <-- USE NEW ROUTES
+app.use('/api/footer-links', footerLinkRoutes);
+app.use('/api/chat', chatRoutes);
 app.use(notFound);
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

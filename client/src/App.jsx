@@ -26,6 +26,7 @@ import StudentDashboardScreen from './screens/StudentDashboardScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import CreateCourseScreen from './screens/CreateCourseScreen';
 import CourseEditScreen from './screens/CourseEditScreen';
+import ChatScreen from './screens/ChatScreen';
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
             <Route path="" element={<PrivateRoute />}>
               <Route path="/course/:courseId/lecture/:lectureIndex" element={<div className="container mx-auto px-4 py-8 w-full"><LectureScreen /></div>} />
               <Route path="/profile" element={<div className="container mx-auto px-4 py-8 w-full"><ProfileScreen /></div>} />
+              <Route path="/course/:courseId/chat" element={<div className="container mx-auto px-4 py-8 w-full"><ChatScreen /></div>} />
             </Route>
 
             {/* --- Private (Lecturer only) --- */}

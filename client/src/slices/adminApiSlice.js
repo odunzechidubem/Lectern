@@ -14,6 +14,27 @@ export const adminApiSlice = apiSlice.injectEndpoints({
     deleteUserById: builder.mutation({
       query: (userId) => ({ url: `${ADMIN_URL}/users/${userId}`, method: 'DELETE' }),
     }),
+    getSystemSettings: builder.query({
+      query: () => `${ADMIN_URL}/settings`,
+      providesTags: ['Settings'],
+    }),
+    updateSystemSettings: builder.mutation({
+      query: (data) => ({ url: `${ADMIN_URL}/settings`, method: 'PUT', body: data }),
+      invalidatesTags: ['Settings'],
+    }),
+    
+    // --- NEW ENDPOINTS ---
+    getAllCourses: builder.query({
+      query: () => `${ADMIN_URL}/courses`,
+      providesTags: ['AllCourses'],
+    }),
+    deleteCourseById: builder.mutation({
+      query: (courseId) => ({
+        url: `${ADMIN_URL}/courses/${courseId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['AllCourses'],
+    }),
   }),
 });
 
@@ -21,4 +42,8 @@ export const {
   useGetUsersByRoleQuery,
   useToggleUserStatusMutation,
   useDeleteUserByIdMutation,
+  useGetSystemSettingsQuery,
+  useUpdateSystemSettingsMutation,
+  useGetAllCoursesQuery,
+  useDeleteCourseByIdMutation,
 } = adminApiSlice;
