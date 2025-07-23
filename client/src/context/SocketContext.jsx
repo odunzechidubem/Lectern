@@ -13,19 +13,15 @@ export const SocketProvider = ({ children }) => {
   const { userInfo } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Only establish a connection if the user is logged in
     if (userInfo) {
       const newSocket = io('http://localhost:5000', {
         withCredentials: true,
       });
       setSocket(newSocket);
-
-      // Disconnect when the user logs out or the component unmounts
       return () => {
         newSocket.disconnect();
       };
     } else {
-      // If the user logs out, make sure any existing socket is disconnected and cleared
       if (socket) {
         socket.disconnect();
         setSocket(null);

@@ -22,12 +22,22 @@ dotenv.config();
 connectDB();
 const app = express();
 const httpServer = createServer(app);
-initSocketServer(httpServer);
+
+const { io, userSocketMap } = initSocketServer(httpServer);
+
+app.use((req, res, next) => {
+  req.io = io;
+  req.userSocketMap = userSocketMap;
+  next();
+});
+
+app.use(cors({ origin: (origin, callback) => callback(null, true), credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({ origin: (origin, callback) => callback(null, true), credentials: true }));
+
 app.get('/', (req, res) => res.send('API is running successfully...'));
+
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -39,7 +49,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/footer-links', footerLinkRoutes);
 app.use('/api/chat', chatRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
+
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
