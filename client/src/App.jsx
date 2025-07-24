@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLogoutMutation } from './slices/usersApiSlice';
 import { clearCredentials } from './slices/authSlice';
@@ -15,6 +15,7 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import VerifyEmailChangeScreen from './screens/VerifyEmailChangeScreen';
 import CourseScreen from './screens/CourseScreen';
 import LectureScreen from './screens/LectureScreen';
 import AssignmentScreen from './screens/AssignmentScreen';
@@ -46,17 +47,12 @@ function App() {
         dispatch(clearCredentials());
       };
       socket.on('force-logout', handleForceLogout);
-      const handleNewNotification = () => {
-        dispatch(apiSlice.util.invalidateTags(['Notifications']));
-      };
+      const handleNewNotification = () => { dispatch(apiSlice.util.invalidateTags(['Notifications'])); };
       socket.on('newNotification', handleNewNotification);
-      return () => {
-        socket.off('force-logout', handleForceLogout);
-        socket.off('newNotification', handleNewNotification);
-      };
+      return () => { socket.off('force-logout', handleForceLogout); socket.off('newNotification', handleNewNotification); };
     }
   }, [socket, userInfo, dispatch, logoutApiCall]);
-  
+
   return (
     <Router>
       <ScrollToTop />
@@ -71,6 +67,7 @@ function App() {
             <Route path="/forgot-password" element={<div className="container mx-auto px-4 py-8 w-full"><ForgotPasswordScreen /></div>} />
             <Route path="/reset-password/:token" element={<div className="container mx-auto px-4 py-8 w-full"><ResetPasswordScreen /></div>} />
             <Route path="/course/:id" element={<div className="container mx-auto px-4 py-8 w-full"><CourseScreen /></div>} />
+            <Route path="/verify-email-change/:token" element={<div className="container mx-auto px-4 py-8 w-full"><VerifyEmailChangeScreen /></div>} />
             <Route path="" element={<PrivateRoute />}>
               <Route path="/course/:courseId/lecture/:lectureIndex" element={<div className="container mx-auto px-4 py-8 w-full"><LectureScreen /></div>} />
               <Route path="/profile" element={<div className="container mx-auto px-4 py-8 w-full"><ProfileScreen /></div>} />
@@ -97,5 +94,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;

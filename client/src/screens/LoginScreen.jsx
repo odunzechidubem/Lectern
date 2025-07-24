@@ -18,16 +18,13 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (userInfo) {
+      // Simple, robust redirection logic
       if (userInfo.role === 'superAdmin') {
         navigate('/admin/dashboard');
       } else if (userInfo.role === 'lecturer') {
         navigate('/lecturer/dashboard');
-      } else if (userInfo.role === 'student') {
-        if (userInfo.hasEnrolledCourses) {
-          navigate('/student/dashboard');
-        } else {
-          navigate('/');
-        }
+      } else { // 'student' and any other case
+        navigate('/student/dashboard');
       }
     }
   }, [userInfo, navigate]);
@@ -51,15 +48,14 @@ const LoginScreen = () => {
     try {
       const res = await login({ email, password }).unwrap();
       dispatch(setCredentials({ ...res }));
+      // The useEffect hook will handle navigation
     } catch (err) {
       toast.error(err?.data?.message || err.error);
-      // --- THIS IS THE FIX ---
-      // Clear both fields on a failed login attempt
       setEmail('');
       setPassword('');
     }
   };
-
+  
   const emailBorderStyle = isEmailValid ? 'border-gray-300' : 'border-red-500';
 
   return (

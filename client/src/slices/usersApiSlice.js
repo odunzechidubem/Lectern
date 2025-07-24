@@ -10,26 +10,10 @@ export const usersApiSlice = apiSlice.injectEndpoints({
     getMySubmissions: builder.query({ query: () => ({ url: `${USERS_URL}/my-submissions` }), providesTags: ['MySubmissions'] }),
     forgotPassword: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/forgot-password`, method: 'POST', body: data }) }),
     resetPassword: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/reset-password/${data.token}`, method: 'PUT', body: { password: data.password } }) }),
-    updateProfile: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/profile`,
-        method: 'PUT',
-        body: data,
-      }),
-    }),
-    changePassword: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/profile/change-password`,
-        method: 'PUT',
-        body: data,
-      }),
-    }),
-    deleteAccount: builder.mutation({
-      query: () => ({
-        url: `${USERS_URL}/profile`,
-        method: 'DELETE',
-      }),
-    }),
+    updateProfile: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/profile`, method: 'PUT', body: data }) }),
+    changePassword: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/profile/change-password`, method: 'PUT', body: data }) }),
+    deleteAccount: builder.mutation({ query: () => ({ url: `${USERS_URL}/profile`, method: 'DELETE' }) }),
+    requestEmailChange: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/profile/request-email-change`, method: 'PUT', body: data }) }),
   }),
 });
 
@@ -37,5 +21,6 @@ export const {
   useLoginMutation, useRegisterMutation, useLogoutMutation,
   useGetEnrolledCoursesQuery, useGetMySubmissionsQuery,
   useForgotPasswordMutation, useResetPasswordMutation,
-  useUpdateProfileMutation, useChangePasswordMutation, useDeleteAccountMutation
+  useUpdateProfileMutation, useChangePasswordMutation, useDeleteAccountMutation,
+  useRequestEmailChangeMutation,
 } = usersApiSlice;
