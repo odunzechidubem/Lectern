@@ -59,7 +59,7 @@ const AssignmentScreen = () => {
                 Due: {new Date(assignment.dueDate).toLocaleDateString()}
               </p>
             )}
-            <p className="text-gray-700 mb-4">{assignment.description}</p>
+            <p className="text-gray-700 mb-4 whitespace-pre-wrap">{assignment.description}</p>
             {assignment.instructionFileUrl && (
               <a href={assignment.instructionFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-red-500 hover:text-red-700 font-semibold">
                 <FaFilePdf className="mr-2" /> View Instructions (PDF)

@@ -14,7 +14,7 @@ const CourseCard = ({ course }) => {
         {/* --- THIS IS THE FIX --- */}
         {/* We use line-clamp to truncate the text to 3 lines */}
         {/* We also add break-words to handle long, unbroken strings */}
-        <p className="text-gray-700 mb-4 h-20 overflow-hidden line-clamp-3 break-words">
+        <p className="text-gray-700 mb-4 h-20 overflow-hidden line-clamp-3 break-words whitespace-pre-wrap">
           {course.description}
         </p>
       </div>

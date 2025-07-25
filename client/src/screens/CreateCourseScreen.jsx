@@ -55,7 +55,7 @@ const CreateCourseScreen = () => {
               id="description"
               rows="5"
               placeholder="Provide a detailed description of your course..."
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 border rounded whitespace-pre-wrap"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             ></textarea>

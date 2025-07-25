@@ -119,7 +119,7 @@ const SubmissionsScreen = () => {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 mb-2">Feedback (optional)</label>
-                <textarea rows="3" value={feedback} onChange={(e) => setFeedback(e.target.value)} className="w-full px-3 py-2 border rounded"></textarea>
+                <textarea rows="3" value={feedback} onChange={(e) => setFeedback(e.target.value)} className="w-full px-3 py-2 border rounded whitespace-pre-wrap"></textarea>
               </div>
               <div className="flex justify-end space-x-4">
                 <button type="button" onClick={() => setSelectedSubmission(null)} className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300">Cancel</button>

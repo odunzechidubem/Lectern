@@ -1,11 +1,11 @@
 import { FaBook, FaEnvelope, FaPhone } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useGetSettingsQuery } from '../slices/settingsApiSlice';
-import { useGetFooterLinksQuery } from '../slices/footerLinksApiSlice'; // <-- IMPORT
+import { useGetFooterLinksQuery } from '../slices/footerLinksApiSlice';
 
 const Footer = () => {
   const { data: settings } = useGetSettingsQuery();
-  const { data: links, isLoading: isLoadingLinks } = useGetFooterLinksQuery(); // <-- USE HOOK
+  const { data: links, isLoading: isLoadingLinks } = useGetFooterLinksQuery();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -23,7 +23,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {/* --- DYNAMIC LINKS RENDERED HERE --- */}
+              {/* --- THIS IS THE UPDATED LINK --- */}
+              <li><Link to="/about" className="text-gray-400 hover:text-white">About Us</Link></li>
+              
               {isLoadingLinks ? (
                 <li>Loading...</li>
               ) : (
@@ -56,5 +58,4 @@ const Footer = () => {
     </footer>
   );
 };
-
 export default Footer;

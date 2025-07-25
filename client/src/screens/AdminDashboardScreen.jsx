@@ -18,7 +18,7 @@ const AdminDashboardScreen = () => {
   const [deleteUserById, { isLoading: isDeletingUser }] = useDeleteUserByIdMutation();
 
   // Hooks for Course Management Tab
-  const { data: courses, isLoading: isLoadingCourses, error: coursesError, refetch: refetchCourses } = useGetAllCoursesQuery();
+  const { data: courses, isLoading: isLoadingCourses, error: coursesError } = useGetAllCoursesQuery();
   const [deleteCourseById, { isLoading: isDeletingCourse }] = useDeleteCourseByIdMutation();
 
   // Hooks for Settings Tabs
@@ -96,11 +96,17 @@ const AdminDashboardScreen = () => {
         {activeTab === 'siteContent' && (
           isLoadingSettings ? <Loader /> : (
             <form onSubmit={handleSubmitContent} className="bg-white p-6 rounded-lg shadow-md space-y-6">
+              <h3 className="text-xl font-bold">General Settings</h3>
               <div><label className="block text-gray-700 font-bold mb-2">Site Name</label><input type="text" name="siteName" value={formState.siteName || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Logo</label><img src={formState.logoUrl || '/logo.png'} alt="Logo Preview" className="h-12 w-auto bg-gray-200 p-1 rounded mb-2" /><input type="file" name="logoUrl" data-label="Logo" onChange={handleFileUpload} className="w-full" accept="image/*" /></div>
+              <hr /><h3 className="text-xl font-bold">Home Page (Hero Section)</h3>
               <div><label className="block text-gray-700 font-bold mb-2">Hero Title</label><input type="text" name="heroTitle" value={formState.heroTitle || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Hero Text</label><textarea name="heroText" rows="3" value={formState.heroText || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Hero Image</label><img src={formState.heroImageUrl || ''} alt="Hero Preview" className="h-32 w-auto rounded mb-2 object-cover" /><input type="file" name="heroImageUrl" data-label="Hero Image" onChange={handleFileUpload} className="w-full" accept="image/*" /></div>
+              <hr /><h3 className="text-xl font-bold">About Us Page</h3>
+              <div><label className="block text-gray-700 font-bold mb-2">About Us Title</label><input type="text" name="aboutUsTitle" value={formState.aboutUsTitle || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
+              <div><label className="block text-gray-700 font-bold mb-2">About Us Text</label><textarea name="aboutUsText" rows="5" value={formState.aboutUsText || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
+              <div><label className="block text-gray-700 font-bold mb-2">About Us Image</label><img src={formState.aboutUsImageUrl || ''} alt="About Us Preview" className="h-32 w-auto rounded mb-2 object-cover" /><input type="file" name="aboutUsImageUrl" data-label="About Us Image" onChange={handleFileUpload} className="w-full" accept="image/*" /></div>
               <hr /><h3 className="text-xl font-bold">Footer Settings</h3>
               <div><label className="block text-gray-700 font-bold mb-2">Footer About Text</label><input type="text" name="footerAboutText" value={formState.footerAboutText || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Contact Email</label><input type="email" name="footerContactEmail" value={formState.footerContactEmail || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>

@@ -4,6 +4,7 @@ const settingsSchema = new mongoose.Schema({
   singleton: { type: String, default: 'system_settings', unique: true },
   isStudentRegistrationEnabled: { type: Boolean, required: true, default: true },
   isLecturerRegistrationEnabled: { type: Boolean, required: true, default: true },
+  
   siteName: { type: String, default: 'LMS Platform' },
   logoUrl: { type: String, default: '/logo.png' },
   heroTitle: { type: String, default: 'Welcome to the LMS Platform' },
@@ -13,13 +14,10 @@ const settingsSchema = new mongoose.Schema({
   footerContactEmail: { type: String, default: 'contact@lmsplatform.com' },
   footerContactPhone: { type: String, default: '(123) 456-7890' },
   
-  // --- NEW FIELD FOR EDITABLE FOOTER LINKS ---
-  footerLinks: [
-    {
-      linkName: { type: String, required: true },
-      linkUrl: { type: String, required: true },
-    },
-  ],
+  // --- NEW FIELDS FOR ABOUT US PAGE ---
+  aboutUsTitle: { type: String, default: 'About Our Platform' },
+  aboutUsText: { type: String, default: 'This is the default text for the About Us page. Please update this content in the admin dashboard. Our mission is to provide an accessible and powerful learning management system for lecturers and students. We believe in the power of education and technology to create a better future.' },
+  aboutUsImageUrl: { type: String, default: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80' },
 });
 
 const Settings = mongoose.model('Settings', settingsSchema);

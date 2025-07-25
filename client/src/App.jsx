@@ -1,12 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useLogoutMutation } from './slices/usersApiSlice';
-import { clearCredentials } from './slices/authSlice';
-import { useSocket } from './context/SocketContext';
-import { apiSlice } from './slices/apiSlice';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -22,6 +16,7 @@ import AssignmentScreen from './screens/AssignmentScreen';
 import SubmissionsScreen from './screens/SubmissionsScreen';
 import MyGradesScreen from './screens/MyGradesScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import AboutScreen from './screens/AboutScreen';
 import PrivateRoute from './components/PrivateRoute';
 import LecturerRoute from './components/LecturerRoute';
 import StudentRoute from './components/StudentRoute';
@@ -32,6 +27,12 @@ import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import CreateCourseScreen from './screens/CreateCourseScreen';
 import CourseEditScreen from './screens/CourseEditScreen';
 import ChatScreen from './screens/ChatScreen';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLogoutMutation } from './slices/usersApiSlice';
+import { clearCredentials } from './slices/authSlice';
+import { useSocket } from './context/SocketContext';
+import { apiSlice } from './slices/apiSlice';
 
 function App() {
   const dispatch = useDispatch();
@@ -41,11 +42,7 @@ function App() {
 
   useEffect(() => {
     if (socket && userInfo) {
-      const handleForceLogout = (data) => {
-        toast.error(data.message || 'Your session has been terminated.');
-        logoutApiCall();
-        dispatch(clearCredentials());
-      };
+      const handleForceLogout = (data) => { toast.error(data.message || 'Your session has been terminated.'); logoutApiCall(); dispatch(clearCredentials()); };
       socket.on('force-logout', handleForceLogout);
       const handleNewNotification = () => { dispatch(apiSlice.util.invalidateTags(['Notifications'])); };
       socket.on('newNotification', handleNewNotification);
@@ -62,6 +59,7 @@ function App() {
         <main className="flex-grow flex">
           <Routes>
             <Route path="/" element={<HomeScreen />} />
+            <Route path="/about" element={<div className="container mx-auto px-4 py-8 w-full"><AboutScreen /></div>} />
             <Route path="/login" element={<div className="container mx-auto px-4 py-8 w-full"><LoginScreen /></div>} />
             <Route path="/register" element={<div className="container mx-auto px-4 py-8 w-full"><RegisterScreen /></div>} />
             <Route path="/forgot-password" element={<div className="container mx-auto px-4 py-8 w-full"><ForgotPasswordScreen /></div>} />

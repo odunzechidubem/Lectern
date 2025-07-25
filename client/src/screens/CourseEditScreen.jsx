@@ -74,8 +74,8 @@ const CourseEditScreen = () => {
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">Description</label>
-                  <textarea rows="5" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <label className="block text-gray-700 mb-2 whitespace-pre-wrap">Description</label>
+                  <textarea rows="5" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 border rounded whitespace-pre-wrap" />
                 </div>
                 <button type="submit" disabled={isUpdating} className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
                   {isUpdating ? 'Saving...' : 'Save Changes'}
@@ -86,7 +86,7 @@ const CourseEditScreen = () => {
               <h2 className="text-2xl font-bold mb-4">Manage Announcements</h2>
               <form onSubmit={handleCreateAnnouncement} className="mb-6 border-b pb-6">
                 <h3 className="text-lg font-semibold">Post New Announcement</h3>
-                <textarea rows="4" value={announcementContent} onChange={(e) => setAnnouncementContent(e.target.value)} className="w-full px-3 py-2 border rounded my-2" placeholder="Announce an upcoming class..."></textarea>
+                <textarea rows="4" value={announcementContent} onChange={(e) => setAnnouncementContent(e.target.value)} className="w-full px-3 py-2 border rounded my-2 whitespace-pre-wrap" placeholder="Announce an upcoming class..."></textarea>
                 <button type="submit" disabled={isCreatingAnnouncement} className="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">{isCreatingAnnouncement ? 'Posting...' : 'Post Announcement'}</button>
               </form>
               <h3 className="text-lg font-semibold">Posted Announcements</h3>
@@ -145,7 +145,7 @@ const CourseEditScreen = () => {
               <form onSubmit={handleCreateAssignment} className="mb-6 border-b pb-6">
                 <h3 className="text-lg font-semibold mb-2">Create New Assignment</h3>
                 <div className="mb-4"><label className="block text-gray-700 mb-2">Title</label><input type="text" value={assignmentTitle} onChange={(e) => setAssignmentTitle(e.target.value)} className="w-full px-3 py-2 border rounded" /></div>
-                <div className="mb-4"><label className="block text-gray-700 mb-2">Description (optional)</label><textarea rows="3" value={assignmentDesc} onChange={(e) => setAssignmentDesc(e.target.value)} className="w-full px-3 py-2 border rounded" /></div>
+                <div className="mb-4"><label className="block text-gray-700 mb-2">Description (optional)</label><textarea rows="3" value={assignmentDesc} onChange={(e) => setAssignmentDesc(e.target.value)} className="w-full px-3 py-2 border rounded whitespace-pre-wrap" /></div>
                 <div className="mb-4"><label className="block text-gray-700 mb-2">Due Date</label><input type="date" value={assignmentDueDate} onChange={(e) => setAssignmentDueDate(e.target.value)} className="w-full px-3 py-2 border rounded" /></div>
                 <div className="mb-4"><label className="block text-gray-700 mb-2">Instruction File (PDF, optional)</label><input type="file" id="assignmentFile" onChange={(e) => setAssignmentFile(e.target.files[0])} className="w-full" /></div>
                 <button type="submit" disabled={isCreatingAssignment || isUploading} className="w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600">{isCreatingAssignment || isUploading ? 'Creating...' : 'Create Assignment'}</button>
