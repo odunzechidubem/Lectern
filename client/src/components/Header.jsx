@@ -6,6 +6,7 @@ import { clearCredentials } from '../slices/authSlice';
 import { useGetSettingsQuery } from '../slices/settingsApiSlice';
 import { FaSignInAlt, FaUser } from 'react-icons/fa';
 import Notifications from './Notifications';
+import LanguageSelector from './LanguageSelector'; // <-- IMPORT
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -16,6 +17,18 @@ const Header = () => {
   const [logoutApiCall] = useLogoutMutation();
 
   const { data: settings } = useGetSettingsQuery();
+  
+  // Create a ref to hold the target location for the widget
+  const translateElementRef = useRef(null);
+
+  useEffect(() => {
+    // This effect moves the Google Translate widget into our header
+    const googleTranslateElement = document.getElementById('google_translate_element');
+    if (googleTranslateElement && translateElementRef.current) {
+      translateElementRef.current.appendChild(googleTranslateElement);
+      googleTranslateElement.style.display = 'block'; // Make it visible
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,10 +77,13 @@ const Header = () => {
         </Link>
         <nav>
           <ul className="flex items-center space-x-4">
+            {/* The LanguageSelector component handles styling logic */}
+            <LanguageSelector />
+            {/* This li is the target where the widget will be moved */}
+            <li ref={translateElementRef} className="notranslate"></li>
+
             {userInfo ? (
               <>
-                {/* --- THIS IS THE FIX --- */}
-                {/* The notification bell will now render for both students and lecturers */}
                 {(userInfo.role === 'student' || userInfo.role === 'lecturer') && (
                   <li>
                     <Notifications />
