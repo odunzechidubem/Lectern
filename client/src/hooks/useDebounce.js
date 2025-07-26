@@ -9,7 +9,7 @@ function useDebounce(value, delay) {
   useEffect(() => {
     // Set up a timer that will update the debounced value after the delay
     const handler = setTimeout(() => {
-      setDebouncedValue(value);
+      setDebouncedValue(value); 
     }, delay);
 
     // This is the cleanup function. It runs every time the `value` changes.
