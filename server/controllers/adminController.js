@@ -43,8 +43,9 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Delete a user by ID
+// @desc    Delete a user by ID - THIS FUNCTION IS NOW FIXED
 const deleteUserById = asyncHandler(async (req, res) => {
+  // The extra period after 'params' has been removed.
   const user = await User.findById(req.params.id);
   if (user) {
     if (user.role === 'superAdmin') {

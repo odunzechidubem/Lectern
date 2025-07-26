@@ -58,8 +58,22 @@ const AdminDashboardScreen = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center"><FaUserShield className="mr-3" /> Admin Dashboard</h1>
-      <div className="mb-4 border-b border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+          <FaUserShield className="mr-3" /> Admin Dashboard
+        </h1>
+        <div className="mt-4 sm:mt-0 sm:hidden">
+          <label htmlFor="tabs" className="sr-only">Select a tab</label>
+          <select id="tabs" name="tabs" className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" value={activeTab} onChange={(e) => setActiveTab(e.target.value)}>
+            <option value="userManagement">User Management</option>
+            <option value="courseManagement">Course Management</option>
+            <option value="userSettings">User Settings</option>
+            <option value="siteContent">Site Content</option>
+            <option value="footerLinks">Footer Links</option>
+          </select>
+        </div>
+      </div>
+      <div className="hidden sm:block mb-4 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button onClick={() => setActiveTab('userManagement')} className={`${activeTab === 'userManagement' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}><FaUsers className="mr-2 inline" />User Management</button>
           <button onClick={() => setActiveTab('courseManagement')} className={`${activeTab === 'courseManagement' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}><FaBook className="mr-2 inline" />Course Management</button>
@@ -75,7 +89,7 @@ const AdminDashboardScreen = () => {
             <div className="mb-4 border-b border-gray-200">
               <nav className="-mb-px flex space-x-8" aria-label="Tabs"><button onClick={() => setActiveUserTab('lecturers')} className={`${activeUserTab === 'lecturers' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Lecturers</button><button onClick={() => setActiveUserTab('students')} className={`${activeUserTab === 'students' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Students</button></nav>
             </div>
-            {isLoadingUsers ? <Loader /> : usersError ? <Message variant="error">{usersError?.data?.message || usersError.error}</Message> : (<div className="bg-white shadow-md rounded-lg"><ul className="divide-y divide-gray-200">{users && users.length > 0 ? (users.map(user => (<li key={user._id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center"><div className="flex items-center"><img src={user.profileImage || `https://ui-avatars.com/api/?name=${user.name.split(' ').join('+')}&background=random`} alt="Profile" className="w-10 h-10 rounded-full mr-4 object-cover" /><div><p className="font-semibold text-gray-800">{user.name}</p><p className="text-sm text-gray-600">{user.email}</p></div></div><div className="mt-4 sm:mt-0 flex items-center space-x-4"><div className={`flex items-center text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>{user.isActive ? <FaCheckCircle className="mr-1" /> : <FaTimesCircle className="mr-1" />}{user.isActive ? 'Active' : 'Disabled'}</div><button onClick={() => handleToggle(user._id)} disabled={isToggling} className="bg-yellow-500 text-white text-xs py-1 px-3 rounded hover:bg-yellow-600">{user.isActive ? 'Disable' : 'Enable'}</button><button onClick={() => handleDeleteUser(user._id)} disabled={isDeletingUser} className="bg-red-600 text-white text-xs p-2 rounded-full hover:bg-red-700"><FaTrash /></button></div></li>))) : <Message>No {activeUserTab} found.</Message>}</ul></div>)}
+            {isLoadingUsers ? <Loader /> : usersError ? <Message variant="error">{usersError?.data?.message || usersError.error}</Message> : (<div className="bg-white shadow-md rounded-lg"><ul className="divide-y divide-gray-200">{users && users.length > 0 ? (users.map(user => (<li key={user._id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center"><div className="flex items-center"><img src={user.profileImage || `https://ui-avatars.com/api/?name=${user.name.split(' ').join('+')}&background=random`} alt="Profile" className="w-10 h-10 rounded-full mr-4 object-cover" /><div><p className="font-semibold text-gray-800">{user.name}</p><p className="text-sm text-gray-600">{user.email}</p></div></div><div className="mt-4 sm:mt-0 flex items-center space-x-2 sm:space-x-4 self-start sm:self-center"><div className={`flex items-center text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>{user.isActive ? <FaCheckCircle className="mr-1" /> : <FaTimesCircle className="mr-1" />}{user.isActive ? 'Active' : 'Disabled'}</div><button onClick={() => handleToggle(user._id)} disabled={isToggling} className="bg-yellow-500 text-white text-xs py-1 px-3 rounded hover:bg-yellow-600">{user.isActive ? 'Disable' : 'Enable'}</button><button onClick={() => handleDeleteUser(user._id)} disabled={isDeletingUser} className="bg-red-600 text-white text-xs p-2 rounded-full hover:bg-red-700"><FaTrash /></button></div></li>))) : <Message>No {activeUserTab} found.</Message>}</ul></div>)}
           </div>
         )}
         {activeTab === 'courseManagement' && (
