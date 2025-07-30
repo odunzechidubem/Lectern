@@ -19,7 +19,7 @@ const sendEmail = async (options) => {
     // IMPORTANT: For services like Brevo or SendGrid, the email in the angle brackets
     // MUST be the one you have verified in your account.
     // Replace 'your-verified-email@example.com' with the email you use to log in to Mailtrap/Brevo.
-    from: `"${options.siteName || 'LMS Platform'}" <odunzemichael1273@gmail.com>`,
+    from: `"${options.siteName || 'Lectern'}" <odunzemichael1273@gmail.com>`,
     to: options.email,
     subject: options.subject,
     html: options.html,
@@ -50,7 +50,7 @@ export default sendEmail;
 //   });
 
 //   const mailOptions = {
-//     from: `"${options.siteName || 'LMS Platform'}" odunzechidubem73@gmail.com`,
+//     from: `"${options.siteName || 'Lectern'}" odunzechidubem73@gmail.com`,
 //     to: options.email,
 //     subject: options.subject,
 //     html: options.html,

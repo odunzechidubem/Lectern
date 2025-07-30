@@ -26,7 +26,7 @@ const Hero = () => {
       {/* Left Side: Welcome Text */}
       <div className="md:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
         <h1 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-4 leading-tight">
-          {settings?.heroTitle || 'Welcome to the LMS Platform'}
+          {settings?.heroTitle || 'Welcome to the Lectern'}
         </h1>
         <p className="text-gray-600 mb-6 text-lg">
           {settings?.heroText || 'Your central hub for accessing course materials, submitting assignments, and tracking your learning progress.'}

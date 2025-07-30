@@ -14,8 +14,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
           <div>
             <h3 className="text-lg font-bold mb-4 flex items-center justify-center md:justify-start">
-              <img src={settings?.logoUrl || '/logo.png'} alt="Logo" className="h-8 w-auto mr-2" />
-              <span>{settings?.siteName || 'LMS Platform'}</span>
+              <img src={settings?.logoUrl || '/logo.png'} alt="Site Logo" className="h-8 w-auto mr-2" />
+              <span>{settings?.siteName || 'Lectern'}</span>
             </h3>
             <p className="text-gray-400">{settings?.footerAboutText || 'Providing a seamless experience...'}</p>
           </div>
@@ -52,7 +52,7 @@ const Footer = () => {
         </div>
         
         <div className="mt-8 border-t border-gray-700 pt-4 text-center text-gray-500">
-          <p>© {currentYear} {settings?.siteName || 'LMS Platform'}. All Rights Reserved.</p>
+          <p>© {currentYear} {settings?.siteName || 'Lectern'}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>

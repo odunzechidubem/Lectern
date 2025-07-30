@@ -68,11 +68,11 @@ const Header = () => {
         >
           <img 
             src={settings?.logoUrl || '/logo.png'} 
-            alt={settings?.siteName || 'LMS Platform Logo'} 
+            alt={settings?.siteName || 'Site Logo'} 
             className="h-10 w-auto" 
           />
           <span className="hidden sm:block text-xl font-bold tracking-wider ml-3">
-            {settings?.siteName || 'LMS Platform'}
+            {settings?.siteName || 'Lectern'}
           </span>
         </Link>
         <nav>

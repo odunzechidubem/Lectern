@@ -7,6 +7,7 @@ export const apiSlice = createApi({
   tagTypes: [
     'User', 'Users', 'Course', 'AllCourses', 'MyCourses', 'Assignment',
     'Submissions', 'Announcements', 'Notifications', 'Settings', 'FooterLink',
+    'Article', // <-- ADD TAG
   ],
   endpoints: (builder) => ({}),
 });
