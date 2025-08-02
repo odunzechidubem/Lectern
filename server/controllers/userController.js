@@ -8,43 +8,7 @@ import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
-// @desc    Register a new user - THIS FUNCTION IS NOW FIXED
-const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  const settings = await Settings.findOne({ singleton: 'system_settings' });
-  if (settings) {
-    if (role === 'student' && !settings.isStudentRegistrationEnabled) { res.status(403); throw new Error('New student registration is currently disabled.'); }
-    if (role === 'lecturer' && !settings.isLecturerRegistrationEnabled) { res.status(403); throw new Error('New lecturer registration is currently disabled.'); }
-  }
-
-  const userExists = await User.findOne({ email });
-  if (userExists) { res.status(400); throw new Error('User already exists'); }
-  
-  // User.create() already saves the document.
-  const user = await User.create({ name, email, password, role });
-  
-  if (user) {
-    // Generate the token and save it to the user document
-    const verificationToken = user.createVerificationToken();
-    // We only need to save the user again AFTER modifying it with the token.
-    await user.save(); 
-
-    const verifyUrl = `${req.protocol}://${req.get('host')}/api/users/verify/${verificationToken}`;
-    const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
-    try {
-      await sendEmail({ email: user.email, subject: 'LMS Email Verification', html: message });
-      res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
-    } catch (err) {
-      await User.findByIdAndDelete(user._id);
-      res.status(500); throw new Error('Email could not be sent. Please try again.');
-    }
-  } else {
-    res.status(400); throw new Error('Invalid user data');
-  }
-});
-
-// All other functions are correct and included for completeness
+const registerUser = asyncHandler(async (req, res) => { const { name, email, password, role } = req.body; const settings = await Settings.findOne({ singleton: 'system_settings' }); if (settings) { if (role === 'student' && !settings.isStudentRegistrationEnabled) { res.status(403); throw new Error('New student registration is currently disabled.'); } if (role === 'lecturer' && !settings.isLecturerRegistrationEnabled) { res.status(403); throw new Error('New lecturer registration is currently disabled.'); } } const userExists = await User.findOne({ email }); if (userExists) { res.status(400); throw new Error('User already exists'); } const user = await User.create({ name, email, password, role }); if (user) { const verificationToken = user.createVerificationToken(); await user.save({ validateBeforeSave: false }); const verifyUrl = `${req.protocol}://${req.get('host')}/api/users/verify/${verificationToken}`; const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`; try { await sendEmail({ email: user.email, subject: 'LMS Email Verification', html: message }); res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' }); } catch (err) { await User.findByIdAndDelete(user._id); res.status(500); throw new Error('Email could not be sent. Please try again.'); } } else { res.status(400); throw new Error('Invalid user data'); } });
 const authUser = asyncHandler(async (req, res) => { const { email, password } = req.body; const user = await User.findOne({ email }); if (!user || !(await user.matchPassword(password))) { res.status(401); throw new Error('Invalid email or password'); } if (!user.isVerified) { res.status(403); throw new Error('Please verify your email before logging in.'); } if (!user.isActive) { res.status(403); throw new Error('Your account has been disabled. Please contact an administrator.'); } let hasEnrolledCourses = false; if (user.role === 'student') { const enrollmentCount = await Course.countDocuments({ students: user._id }); if (enrollmentCount > 0) { hasEnrolledCourses = true; } } generateToken(res, user._id); res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, profileImage: user.profileImage, hasEnrolledCourses, }); });
 const verifyEmail = asyncHandler(async (req, res) => { const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex'); const user = await User.findOne({ verificationToken, verificationTokenExpires: { $gt: Date.now() } }); if (!user) { res.status(400); throw new Error('Invalid or expired verification token.'); } user.isVerified = true; user.verificationToken = undefined; user.verificationTokenExpires = undefined; await user.save(); res.status(200).send('<h1>Email Verified</h1><p>Your email has been successfully verified. You can now close this tab and log in.</p>'); });
 const logoutUser = (req, res) => { res.cookie('jwt', '', { httpOnly: true, expires: new Date(0), }); res.status(200).json({ message: 'Logged out successfully' }); };
