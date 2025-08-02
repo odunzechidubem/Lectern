@@ -3,7 +3,6 @@ import User from '../models/userModel.js';
 import Settings from '../models/settingsModel.js';
 import Course from '../models/courseModel.js';
 
-// @desc    Get all users by role
 const getAllUsers = asyncHandler(async (req, res) => {
   const role = req.query.role;
   if (!role) {
@@ -14,7 +13,6 @@ const getAllUsers = asyncHandler(async (req, res) => {
   res.status(200).json(users);
 });
 
-// @desc    Toggle a user's active status
 const toggleUserStatus = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (user) {
@@ -60,7 +58,6 @@ const deleteUserById = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get system settings
 const getSystemSettings = asyncHandler(async (req, res) => {
   let settings = await Settings.findOne({ singleton: 'system_settings' });
   if (!settings) {
@@ -72,7 +69,6 @@ const getSystemSettings = asyncHandler(async (req, res) => {
   res.status(200).json(settings);
 });
 
-// @desc    Update system settings
 const updateSystemSettings = asyncHandler(async (req, res) => {
   const settings = await Settings.findOneAndUpdate(
     { singleton: 'system_settings' },
@@ -82,13 +78,11 @@ const updateSystemSettings = asyncHandler(async (req, res) => {
   res.status(200).json(settings);
 });
 
-// @desc    Get all courses from all lecturers
 const getAllCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({}).populate('lecturer', 'name email');
   res.status(200).json(courses);
 });
 
-// @desc    Delete a course by ID (as admin)
 const deleteCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
