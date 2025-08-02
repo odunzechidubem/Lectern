@@ -6,17 +6,16 @@ export default defineConfig({
   plugins: [
     react(),
     viteStaticCopy({
-      targets: [
-        {
-          src: 'node_modules/pdfjs-dist/build/pdf.worker.min.js',
-          dest: ''
-        }
-      ]
+      targets: [ { src: 'node_modules/pdfjs-dist/build/pdf.worker.min.js', dest: '' } ]
     })
   ],
   server: {
     proxy: {
-      '/api': { target: 'http://localhost:5000', changeOrigin: true },
+      '/api': {
+        // --- THIS IS THE CRITICAL CHANGE ---
+        target: 'https://lectern-usqo.onrender.com', // <-- Use your live Render URL
+        changeOrigin: true,
+      },
       '/pdf-proxy': {
         target: 'https://res.cloudinary.com',
         changeOrigin: true,
