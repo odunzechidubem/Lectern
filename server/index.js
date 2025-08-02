@@ -23,6 +23,7 @@ dotenv.config();
 connectDB();
 const app = express();
 const httpServer = createServer(app);
+
 const { io, userSocketMap } = initSocketServer(httpServer);
 
 app.use((req, res, next) => {
@@ -31,10 +32,13 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
+// --- THIS IS THE DEFINITIVE FIX ---
+// We explicitly define the allowed origin based on the environment.
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
-}));
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
