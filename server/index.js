@@ -6,8 +6,6 @@ import { createServer } from 'http';
 import { initSocketServer } from './socket.js';
 import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/authMiddleware.js';
-
-// Import all route files
 import userRoutes from './routes/userRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
@@ -28,9 +26,12 @@ const httpServer = createServer(app);
 
 const { io, userSocketMap } = initSocketServer(httpServer);
 
-app.use((req, res, next) => { req.io = io; req.userSocketMap = userSocketMap; next(); });
+app.use((req, res, next) => {
+  req.io = io;
+  req.userSocketMap = userSocketMap;
+  next();
+});
 
-// --- THIS IS THE CRITICAL FIX ---
 const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
 app.use(
   cors({

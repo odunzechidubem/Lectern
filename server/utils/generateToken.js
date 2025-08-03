@@ -6,14 +6,9 @@ const generateToken = (res, userId) => {
   });
 
   res.cookie('jwt', token, {
-    httpOnly: true, // Prevents client-side JS from accessing the cookie
-    
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // In production, cookies must be secure and allow cross-site requests.
-    // In development, they are not secure.
-    secure: process.env.NODE_ENV === 'production', 
-    sameSite: 'none', // Must be 'none' to allow cross-site cookies
-    
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };
