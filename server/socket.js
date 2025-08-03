@@ -5,13 +5,13 @@ import Course from './models/courseModel.js';
 import Message from './models/messageModel.js';
 import Notification from './models/notificationModel.js';
 
-// This map will store active users: { userId: socket.id }
 const userSocketMap = new Map();
 
 export const initSocketServer = (server) => {
+  const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
   const io = new Server(server, {
     cors: {
-      origin: 'http://localhost:5173',
+      origin: frontendURL,
       credentials: true,
     },
   });
@@ -19,21 +19,20 @@ export const initSocketServer = (server) => {
   io.use(async (socket, next) => {
     try {
       const cookie = socket.handshake.headers.cookie;
-      if (!cookie) return next(new Error('Authentication error: No cookie'));
+      if (!cookie) return next(new Error('Authentication error: No cookie provided.'));
       const token = cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
-      if (!token) return next(new Error('Authentication error: No token'));
+      if (!token) return next(new Error('Authentication error: Token not found in cookie.'));
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = await User.findById(decoded.userId).select('-password');
-      if (!socket.user) return next(new Error('Authentication error: User not found'));
+      if (!socket.user) return next(new Error('Authentication error: User not found.'));
       next();
     } catch (error) {
-      next(new Error('Authentication error'));
+      next(new Error('Authentication error: Invalid token.'));
     }
   });
 
   io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.user.name} (${socket.id})`);
-    // Add user to our map when they connect
     userSocketMap.set(socket.user._id.toString(), socket.id);
 
     socket.on('joinCourse', async (courseId) => {
@@ -68,7 +67,6 @@ export const initSocketServer = (server) => {
               io.to(socketId).emit('newNotification');
             }
           });
-          console.log(`Created and Pushed ${notifications.length} chat notifications.`);
         }
       } catch (error) {
         console.error('Error in sendMessage handler:', error);
@@ -77,11 +75,9 @@ export const initSocketServer = (server) => {
 
     socket.on('disconnect', () => {
       console.log(`Socket Disconnected: ${socket.user.name} (${socket.id})`);
-      // Remove user from map on disconnect
       userSocketMap.delete(socket.user._id.toString());
     });
   });
 
-  // Return the io instance and the user map so they can be used in our controllers
   return { io, userSocketMap };
 };
