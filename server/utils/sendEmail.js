@@ -14,7 +14,7 @@ const sendEmail = async (options) => {
   // 2. Define the email options
   const mailOptions = {
     // IMPORTANT: The email in the angle brackets MUST be the one you have
-    // verified as a sender in your Brevo account (e.g., lectern.lms@gmail.com)
+    // verified as a Single Sender in your SendGrid account.
     from: `"${options.siteName || 'Lectern'}" <lectern.lms@gmail.com>`,
     to: options.email,
     subject: options.subject,
