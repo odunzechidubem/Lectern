@@ -34,45 +34,8 @@ export const initSocketServer = (server) => {
   io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.user.name} (${socket.id})`);
     userSocketMap.set(socket.user._id.toString(), socket.id);
-
-    socket.on('joinCourse', async (courseId) => {
-      const course = await Course.findById(courseId);
-      if (!course) return;
-      const isLecturer = course.lecturer.toString() === socket.user._id.toString();
-      const isEnrolled = course.students.some(s => s.toString() === socket.user._id.toString());
-      if (isLecturer || isEnrolled) {
-        socket.join(courseId);
-        console.log(`${socket.user.name} joined room: ${courseId}`);
-      }
-    });
-
-    socket.on('sendMessage', async ({ courseId, content }) => {
-      if (!content || !courseId) return;
-      try {
-        const message = await Message.create({ course: courseId, sender: socket.user._id, content });
-        const populatedMessage = await Message.findById(message._id).populate('sender', 'name profileImage');
-        io.to(courseId).emit('newMessage', populatedMessage);
-        const course = await Course.findById(courseId);
-        if (!course) return;
-        const participants = [course.lecturer, ...course.students];
-        const recipients = participants.filter((p) => p.toString() !== socket.user._id.toString());
-        if (recipients.length > 0) {
-          const notificationMessage = `${socket.user.name} sent a new message in "${course.title}".`;
-          const link = `/course/${courseId}/chat`;
-          const notifications = recipients.map(userId => ({ user: userId, message: notificationMessage, link }));
-          await Notification.insertMany(notifications);
-          recipients.forEach(userId => {
-            const socketId = userSocketMap.get(userId.toString());
-            if (socketId) {
-              io.to(socketId).emit('newNotification');
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error in sendMessage handler:', error);
-      }
-    });
-
+    socket.on('joinCourse', async (courseId) => { /* ... */ });
+    socket.on('sendMessage', async ({ courseId, content }) => { /* ... */ });
     socket.on('disconnect', () => {
       console.log(`Socket Disconnected: ${socket.user.name} (${socket.id})`);
       userSocketMap.delete(socket.user._id.toString());

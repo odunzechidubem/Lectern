@@ -14,7 +14,9 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (userInfo) {
-      const newSocket = io('http://localhost:5000', {
+      // Use the environment variable for the socket connection
+      const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const newSocket = io(socketUrl, {
         withCredentials: true,
       });
       setSocket(newSocket);
