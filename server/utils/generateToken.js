@@ -1,4 +1,3 @@
-// server/utils/generateToken.js
 import jwt from 'jsonwebtoken';
 
 const generateToken = (res, userId) => {
@@ -6,12 +5,15 @@ const generateToken = (res, userId) => {
     expiresIn: '30d',
   });
 
-  // --- THIS IS THE NEW PART ---
-  // Set JWT as a secure, HTTP-Only cookie
   res.cookie('jwt', token, {
     httpOnly: true, // Prevents client-side JS from accessing the cookie
-    secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
-    sameSite: 'strict', // Prevents CSRF attacks
+    
+    // --- THIS IS THE DEFINITIVE FIX ---
+    // In production, cookies must be secure and allow cross-site requests.
+    // In development, they are not secure.
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'none', // Must be 'none' to allow cross-site cookies
+    
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };
