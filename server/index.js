@@ -33,12 +33,14 @@ app.use((req, res, next) => {
 });
 
 // --- THIS IS THE DEFINITIVE FIX ---
-// We explicitly define the allowed origin based on the environment.
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // The origin is now explicitly set to the cleaned URL
+  origin: frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl,
   credentials: true,
 };
 app.use(cors(corsOptions));
+// --- END OF FIX ---
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
