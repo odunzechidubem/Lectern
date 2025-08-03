@@ -67,7 +67,7 @@ const Header = () => {
           className="flex items-center"
         >
           <img 
-            src={settings?.logoUrl || '/client/public/logo.jpg'} 
+            src={settings?.logoUrl || ''} 
             alt={settings?.siteName || 'Site Logo'} 
             className="h-10 w-auto" 
           />
