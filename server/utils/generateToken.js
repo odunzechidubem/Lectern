@@ -7,13 +7,11 @@ const generateToken = (res, userId) => {
 
   res.cookie('jwt', token, {
     httpOnly: true,
-    // --- THIS IS THE CRITICAL FIX ---
-    // In production, the cookie must be secure and allow cross-site requests.
+    // When NODE_ENV is 'production' (on Render), this will be true.
     secure: process.env.NODE_ENV === 'production',
-    // 'None' is required for cross-domain cookies. The 'secure' attribute must be true.
+    // When NODE_ENV is 'production', this will be 'None', allowing cross-site cookies.
+    // In local dev, it will be 'strict'.
     sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict',
-    // You can optionally set the domain here, but it's often not needed if sameSite is 'None'
-    // domain: process.env.NODE_ENV === 'production' ? '.your-frontend-domain.com' : undefined,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };
