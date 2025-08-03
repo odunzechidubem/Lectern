@@ -1,37 +1,16 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { io } from 'socket.io-client';
+import jwt from 'jsonwebtoken';
 
-const SocketContext = createContext();
+const generateToken = (res, userId) => {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
 
-export const useSocket = () => {
-  return useContext(SocketContext);
+  res.cookie('jwt', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'none',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
 };
 
-export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  const { userInfo } = useSelector((state) => state.auth);
-
-  useEffect(() => {
-    if (userInfo) {
-      // Use the environment variable for the socket connection
-      const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-      const newSocket = io(socketUrl, {
-        withCredentials: true,
-      });
-      setSocket(newSocket);
-      return () => {
-        newSocket.disconnect();
-      };
-    } else {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
-    }
-  }, [userInfo]);
-
-  return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
-  );
-};
+export default generateToken;
