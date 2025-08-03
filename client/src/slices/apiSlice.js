@@ -1,7 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+// This is the absolute URL of your LIVE backend server.
+const BASE_URL = 'https://lectern-usqo.onrender.com';
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_BACKEND_URL || '',
+  baseUrl: BASE_URL,
+  credentials: 'include', // This is crucial for sending cookies cross-domain
 });
 
 export const apiSlice = createApi({
@@ -9,7 +13,7 @@ export const apiSlice = createApi({
   tagTypes: [
     'User', 'Users', 'Course', 'AllCourses', 'MyCourses', 'Assignment',
     'Submissions', 'Announcements', 'Notifications', 'Settings', 'FooterLink',
-    'Article', 'Messages'
+    'Article', 'Messages',
   ],
   endpoints: (builder) => ({}),
 });

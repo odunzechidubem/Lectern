@@ -14,8 +14,8 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (userInfo) {
-      const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-      const newSocket = io(socketUrl, {
+      // Connect to the LIVE backend URL
+      const newSocket = io('https://lectern-usqo.onrender.com', {
         withCredentials: true,
       });
       setSocket(newSocket);
