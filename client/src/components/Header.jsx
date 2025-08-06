@@ -72,7 +72,7 @@ const Header = () => {
             className="h-10 w-auto" 
           />
           <span className="hidden sm:block text-xl font-bold tracking-wider ml-3">
-            {settings?.siteName || 'Lectern'}
+            {settings?.siteName || 'site name here'}
           </span>
         </Link>
         <nav>
