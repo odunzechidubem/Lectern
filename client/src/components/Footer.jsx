@@ -13,10 +13,13 @@ const Footer = () => {
       <div className="container mx-auto py-8 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
           <div>
+          <Link to="/">
             <h3 className="text-lg font-bold mb-4 flex items-center justify-center md:justify-start">
               <img src={settings?.logoUrl || '/logo.png'} alt="Site Logo" className="h-8 w-auto mr-2" />
-              <span>{settings?.siteName || 'Lectern'}</span>
+              <span>{settings?.siteName || 'site name here'}</span>
             </h3>
+          </Link>
+
             <p className="text-gray-400">{settings?.footerAboutText || 'Providing a seamless experience...'}</p>
           </div>
           
@@ -52,7 +55,7 @@ const Footer = () => {
         </div>
         
         <div className="mt-8 border-t border-gray-700 pt-4 text-center text-gray-500">
-          <p>© {currentYear} {settings?.siteName || 'Lectern'}. All Rights Reserved.</p>
+          <p>© {currentYear} {settings?.siteName || 'site name here'}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>
