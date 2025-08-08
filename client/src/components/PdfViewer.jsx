@@ -1,13 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import Loader from './Loader';
 import { FaEnvelope, FaPhone } from 'react-icons/fa';
 
-// --- THIS IS THE DEFINITIVE FIX ---
-// This new syntax correctly tells Vite how to find and serve the worker file
-// directly from node_modules, eliminating all previous errors.
+// This modern syntax correctly tells Vite how to find the worker file
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
@@ -17,6 +15,27 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
   const [numPages, setNumPages] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- THIS IS THE RESPONSIVENESS FIX ---
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const checkSize = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    // Check size on initial mount and on window resize
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    
+    // Cleanup function to remove the event listener
+    return () => {
+      window.removeEventListener('resize', checkSize);
+    };
+  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
+  // --- END OF FIX ---
+
   function onDocumentLoadSuccess({ numPages: nextNumPages }) {
     setNumPages(nextNumPages);
   }
@@ -25,15 +44,20 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
   const showContactMessage = currentPage >= totalVisiblePages;
 
   return (
-    <div className="pdf-container border rounded-lg overflow-hidden">
+    // We attach the ref to this container so we can measure its width
+    <div ref={containerRef} className="pdf-container border rounded-lg overflow-hidden">
       <Document
         file={fileUrl}
         onLoadSuccess={onDocumentLoadSuccess}
         loading={<div className="flex justify-center items-center p-8"><Loader /></div>}
         error={<div className="p-4 text-center text-red-500">Failed to load PDF. Please ensure the URL is correct.</div>}
+        // This option disables the default toolbar which includes print/download
+        className="flex justify-center"
       >
         <Page
           pageNumber={currentPage}
+          // The width prop makes the page responsive
+          width={containerWidth}
           renderAnnotationLayer={false}
           renderTextLayer={false}
         />
