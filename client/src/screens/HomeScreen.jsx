@@ -41,20 +41,20 @@ const HomeScreen = () => {
           <>
             {articles && articles.length === 0 ? <Message>No articles have been posted yet.</Message> : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {articles?.map(article => {
-                  // --- THIS IS THE DIAGNOSTIC LOG ---
-                  console.log('Rendering article with this data:', article);
-                  
-                  return (
-                    <div key={article._id} className="flex flex-col">
-                      <h2 className="text-2xl font-bold text-gray-800 mb-2">{article.title}</h2>
-                      <p className="text-gray-600 mb-4">{article.description}</p>
-                      <div className="flex-grow">
-                        <PdfViewer fileUrl={article.fileUrl} publicPages={article.publicPages} />
-                      </div>
+                {articles?.map(article => (
+                  <div key={article._id} className="flex flex-col">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{article.title}</h2>
+                    <p className="text-gray-600 mb-4">{article.description}</p>
+                    <div className="flex-grow">
+                      <PdfViewer
+                        fileUrl={article.fileUrl}
+                        publicPages={article.publicPages}
+                        contactEmail={article.contactEmail}
+                        contactPhone={article.contactPhone}
+                      />
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </>
