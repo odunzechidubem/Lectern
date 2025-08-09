@@ -1,16 +1,31 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
+import asyncHandler from 'express-async-handler'; // Import asyncHandler
 
-// Checks for a valid token in the cookie and attaches user to req
-const protect = async (req, res, next) => {
+// This is now wrapped in asyncHandler to handle potential errors gracefully
+const protect = asyncHandler(async (req, res, next) => {
   let token;
+
   if (req.cookies.jwt) {
     try {
       token = req.cookies.jwt;
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.userId).select('-password');
-      next();
+      
+      // --- DIAGNOSTIC LOG 1 ---
+      // Fetch the user from the database
+      const userFromDb = await User.findById(decoded.userId).select('-password');
+      console.log('--- [PROTECT MIDDLEWARE] ---');
+      console.log('User fetched from DB:', userFromDb); // Log the entire user object
+      
+      if (userFromDb) {
+        req.user = userFromDb;
+        next();
+      } else {
+        res.status(401);
+        throw new Error('Not authorized, token failed (user not found)');
+      }
     } catch (error) {
+      console.error('TOKEN VERIFICATION ERROR:', error);
       res.status(401);
       throw new Error('Not authorized, token failed');
     }
@@ -18,41 +33,15 @@ const protect = async (req, res, next) => {
     res.status(401);
     throw new Error('Not authorized, no token');
   }
-};
+});
 
-// Checks if the logged-in user is a lecturer
-const lecturer = (req, res, next) => {
-  if (req.user && req.user.role === 'lecturer') {
-    next();
-  } else {
-    res.status(403);
-    throw new Error('Not authorized as a lecturer');
-  }
-};
-
-// Checks if the logged-in user is a student
-const student = (req, res, next) => {
-  if (req.user && req.user.role === 'student') {
-    next();
-  } else {
-    res.status(403);
-    throw new Error('Not authorized as a student');
-  }
-};
-
-// Checks if there is simply a logged-in user (of any role)
-const isUser = (req, res, next) => {
-  if (req.user) {
-    next();
-  } else {
-    res.status(401);
-    throw new Error('Not authorized, no user data');
-  }
-};
-
-// --- THIS IS THE CRITICAL FIX ---
 // Checks if the logged-in user is a superAdmin
 const isAdmin = (req, res, next) => {
+  // --- DIAGNOSTIC LOG 2 ---
+  console.log('--- [IS_ADMIN MIDDLEWARE CHECK] ---');
+  console.log('User Role found on request:', req.user?.role);
+  console.log('Is role equal to "superAdmin"?', req.user?.role === 'superAdmin');
+
   if (req.user && req.user.role === 'superAdmin') {
     next();
   } else {
@@ -61,25 +50,11 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-// Middleware for 404 Not Found errors
-const notFound = (req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  res.status(404);
-  next(error);
-};
-
-// Generic error handler
-const errorHandler = (err, req, res, next) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  let message = err.message;
-  if (err.name === 'CastError' && err.kind === 'ObjectId') {
-    statusCode = 404;
-    message = 'Resource not found';
-  }
-  res.status(statusCode).json({
-    message: message,
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
-  });
-};
+// All other functions are included and unchanged for completeness
+const lecturer = (req, res, next) => { if (req.user && req.user.role === 'lecturer') { next(); } else { res.status(403); throw new Error('Not authorized as a lecturer'); } };
+const student = (req, res, next) => { if (req.user && req.user.role === 'student') { next(); } else { res.status(403); throw new Error('Not authorized as a student'); } };
+const isUser = (req, res, next) => { if (req.user) { next(); } else { res.status(401); throw new Error('Not authorized, no user data'); } };
+const notFound = (req, res, next) => { const error = new Error(`Not Found - ${req.originalUrl}`); res.status(404); next(error); };
+const errorHandler = (err, req, res, next) => { let statusCode = res.statusCode === 200 ? 500 : res.statusCode; let message = err.message; if (err.name === 'CastError' && err.kind === 'ObjectId') { statusCode = 404; message = 'Resource not found'; } res.status(statusCode).json({ message: message, stack: process.env.NODE_ENV === 'production' ? null : err.stack, }); };
 
 export { protect, lecturer, student, isUser, isAdmin, notFound, errorHandler };
