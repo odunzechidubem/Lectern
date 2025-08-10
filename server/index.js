@@ -6,7 +6,6 @@ import { createServer } from 'http';
 import { initSocketServer } from './socket.js';
 import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/authMiddleware.js';
-
 import userRoutes from './routes/userRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
@@ -33,29 +32,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- THIS IS THE DEFINITIVE FIX ---
-// This is the production-ready CORS configuration.
+// This CORS configuration is correct and allows your deployed frontend.
 const allowedOrigins = [
-  'http://localhost:5173', // For local development
-  process.env.FRONTEND_URL, // Your deployed frontend URL
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
 ];
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
       }
-      return callback(null, true);
     },
-    credentials: true, // This is crucial for cookies
+    credentials: true,
   })
 );
-// --- END OF FIX ---
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
