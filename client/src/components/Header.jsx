@@ -96,7 +96,7 @@ const Header = () => {
                 </>
               )}
             </ul>
-           </nav>
+           </nav> 
         </div>
       </header>
       <div ref={mobileTranslateRef} className="md:hidden bg-white-700 p-2 flex justify-center notranslate"></div>
