@@ -51,7 +51,8 @@ const Header = () => {
   const showSignUpLink =
     location.pathname !== '/register' &&
     location.pathname !== '/' &&
-    !location.pathname.startsWith('/course/'); // Hides on course detail pages
+    !location.pathname.startsWith('/course/') &&
+    location.pathname !== '/about'; // <-- Hides on the About page
 
   return (
     <>
@@ -96,7 +97,7 @@ const Header = () => {
                 </>
               )}
             </ul>
-           </nav> 
+          </nav>
         </div>
       </header>
       <div ref={mobileTranslateRef} className="md:hidden bg-white-700 p-2 flex justify-center notranslate"></div>
