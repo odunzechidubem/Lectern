@@ -9,7 +9,7 @@ const generateToken = (res, userId) => {
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'strict', 
     // --- THIS IS THE CHANGE ---
     // maxAge is in milliseconds. This sets the browser cookie to expire in 5 minutes.
     // 5 minutes * 60 seconds/minute * 1000 milliseconds/second
