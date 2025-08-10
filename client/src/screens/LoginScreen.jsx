@@ -82,8 +82,8 @@ const LoginScreen = () => {
         <div className="flex justify-between items-center mt-4 text-sm">
           <Link to="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</Link>
           <p className="text-gray-600">
-            New User?{' '}
-            <Link to="/register" className="text-blue-500 hover:underline">Register</Link>
+            New User?{' '} 
+            <Link to="/register" className="text-blue-500 hover:underline">Register</Link> 
           </p>
         </div>
       </form>
