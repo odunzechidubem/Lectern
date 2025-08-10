@@ -18,7 +18,7 @@ const InactivityHandler = () => {
   const countdownTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  const timeoutDuration = 5 * 60 * 1000; // 5 minutes
+  const timeoutDuration = 5 * 60 * 1000; // 5 minutes 
   const countdownDuration = 60 * 1000; // 1 minute
 
   const logout = useCallback(async () => {

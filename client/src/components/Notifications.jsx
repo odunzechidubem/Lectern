@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Import Link
 import { FaBell } from 'react-icons/fa';
 import {
   useGetMyNotificationsQuery,
@@ -19,16 +19,29 @@ const Notifications = () => {
   const unreadCount = notifications?.length || 0;
 
   useEffect(() => {
-    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); };
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isOpen]);
 
-  const handleClearAll = () => { if (unreadCount > 0) markNotificationsAsRead(); };
+  const handleClearAll = () => {
+    if (unreadCount > 0) {
+      markNotificationsAsRead();
+    }
+  };
+
   const handleNotificationClick = (notification) => {
+    // We only mark as read, the navigation is handled by the Link component
     markOneAsRead(notification._id);
     setIsOpen(false);
-    navigate(notification.link);
   };
 
   return (
@@ -42,25 +55,31 @@ const Notifications = () => {
         )}
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-20">
-          <div className="p-2 flex justify-between items-center font-bold text-gray-800 border-b">
-            <span>Notifications</span>
-            {unreadCount > 0 && (<button onClick={handleClearAll} className="text-xs text-blue-500 hover:underline">Mark all as read</button>)}
+        // --- THIS IS THE RESPONSIVE FIX ---
+        // On mobile (default): fixed position, full width, centered top
+        // On sm screens and up: absolute position, standard width, aligned to the right
+        <div className="fixed top-16 left-0 w-full p-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-80 sm:p-0 z-20">
+          <div className="bg-white rounded-md shadow-lg">
+            <div className="p-2 flex justify-between items-center font-bold text-gray-800 border-b">
+              <span>Notifications</span>
+              {unreadCount > 0 && (<button onClick={handleClearAll} className="text-xs text-blue-500 hover:underline">Mark all as read</button>)}
+            </div>
+            {isLoading ? (<div className="p-2 text-sm text-gray-500">Loading...</div>) : unreadCount > 0 ? (
+              <ul className="divide-y max-h-96 overflow-y-auto">
+                {notifications.map(notif => (
+                  <li key={notif._id}>
+                    {/* We use a Link component for proper navigation */}
+                    <Link to={notif.link} onClick={() => handleNotificationClick(notif)} className="w-full text-left block p-3 hover:bg-gray-100">
+                      <p className="text-sm text-gray-700">{notif.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (<div className="p-4 text-sm text-gray-500">You have no new notifications.</div>)}
           </div>
-          {isLoading ? (<div className="p-2 text-sm text-gray-500">Loading...</div>) : unreadCount > 0 ? (
-            <ul className="divide-y max-h-96 overflow-y-auto">
-              {notifications.map(notif => (
-                <li key={notif._id}>
-                  <button onClick={() => handleNotificationClick(notif)} className="w-full text-left block p-3 hover:bg-gray-100">
-                    <p className="text-sm text-gray-700">{notif.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (<div className="p-4 text-sm text-gray-500">You have no new notifications.</div>)}
         </div>
-      )}
+      )} 
     </div>
   );
 };
