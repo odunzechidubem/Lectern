@@ -7,6 +7,7 @@ import { useLogoutMutation } from './slices/usersApiSlice';
 import { clearCredentials } from './slices/authSlice';
 import { useSocket } from './context/SocketContext';
 import { apiSlice } from './slices/apiSlice';
+import { useGetSettingsQuery } from './slices/settingsApiSlice';
 
 // --- Core Components ---
 import Header from './components/Header';
@@ -47,6 +48,22 @@ function App() {
   const socket = useSocket();
   const { userInfo } = useSelector((state) => state.auth);
   const [logoutApiCall] = useLogoutMutation();
+
+  // --- THIS IS THE FIX for Site Title and Favicon ---
+  const { data: settings } = useGetSettingsQuery();
+
+  useEffect(() => {
+    if (settings) {
+      if (settings.siteName) {
+        document.title = settings.siteName;
+      }
+      const favicon = document.getElementById('favicon');
+      if (favicon && settings.faviconUrl) {
+        favicon.href = settings.faviconUrl;
+      }
+    }
+  }, [settings]);
+  // --- END OF FIX ---
 
   useEffect(() => {
     if (socket && userInfo) {

@@ -15,7 +15,7 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import footerLinkRoutes from './routes/footerLinkRoutes.js';
+import footerLinkRoutes from './routes/footerLinkRoutes.js'; 
 import chatRoutes from './routes/chatRoutes.js';
 import articleRoutes from './routes/articleRoutes.js';
 

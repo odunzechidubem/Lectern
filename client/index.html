@@ -2,26 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" id="favicon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lectern</title>
   </head>
   <body>
     <div id="root"></div>
-
-    <!-- --- THIS IS THE FIX --- -->
-    <!-- We only have ONE div for the widget to initialize into. -->
     <div id="google_translate_element" style="display: none;"></div>
-
-    <!-- The initialization function is now simplified back to one call. -->
     <script type="text/javascript">
       function googleTranslateElementInit() {
         new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
       }
     </script>
-    
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

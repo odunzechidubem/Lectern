@@ -23,4 +23,4 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 export const {
   useGetSettingsQuery,
   useUpdateSettingsMutation, // This line must be here
-} = settingsApiSlice;
+} = settingsApiSlice; 

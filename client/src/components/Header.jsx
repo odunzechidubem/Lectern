@@ -46,13 +46,17 @@ const Header = () => {
   const logoutHandler = async () => { try { await logoutApiCall().unwrap(); dispatch(clearCredentials()); navigate('/login'); } catch (err) { console.error(err); } };
   const handleNavigate = (path) => { setIsDropdownOpen(false); navigate(path); };
 
-  // --- THIS IS THE FIX ---
-  // A variable to determine if the "Sign Up" link should be shown.
+  const showSignInLink =
+    location.pathname !== '/login' &&
+    location.pathname !== '/forgot-password';
+
+  // --- THIS IS THE DEFINITIVE FIX ---
+  // The new condition `location.pathname !== '/about'` is added here.
   const showSignUpLink =
     location.pathname !== '/register' &&
-    location.pathname !== '/' &&
-    !location.pathname.startsWith('/course/') &&
-    location.pathname !== '/about'; // <-- Hides on the About page
+    !location.pathname.startsWith('/reset-password') &&
+    location.pathname !== '/' && // Hides the button on the homepage
+    location.pathname !== '/about'; // Hides the button on the about page
 
   return (
     <>
@@ -88,7 +92,7 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  {location.pathname !== '/login' && (
+                  {showSignInLink && (
                     <li><Link to="/login" className="flex items-center hover:text-gray-300"><FaSignInAlt className="mr-2" /> Sign In</Link></li>
                   )}
                   {showSignUpLink && (

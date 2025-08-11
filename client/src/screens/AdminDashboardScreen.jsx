@@ -9,37 +9,26 @@ import Loader from '../components/Loader';
 import Message from '../components/Message';
 import { FaBook, FaCheckCircle, FaTimesCircle, FaTrash, FaUserShield, FaCog, FaUsers, FaPalette, FaLink, FaEdit, FaFileAlt } from 'react-icons/fa';
 
+// --- Main Admin Dashboard Component ---
 const AdminDashboardScreen = () => {
   const [activeTab, setActiveTab] = useState('userManagement');
-
-  // State and Hooks for User Management Tab
   const [activeUserTab, setActiveUserTab] = useState('lecturers');
   const { data: users, isLoading: isLoadingUsers, error: usersError, refetch: refetchUsers } = useGetUsersByRoleQuery(activeUserTab === 'lecturers' ? 'lecturer' : 'student');
   const [toggleUserStatus, { isLoading: isToggling }] = useToggleUserStatusMutation();
   const [deleteUserById, { isLoading: isDeletingUser }] = useDeleteUserByIdMutation();
-
-  // Hooks for Course Management Tab
   const { data: courses, isLoading: isLoadingCourses, error: coursesError, refetch: refetchCourses } = useGetAllCoursesQuery();
   const [deleteCourseById, { isLoading: isDeletingCourse }] = useDeleteCourseByIdMutation();
-
-  // Hooks for Settings Tabs
   const { data: settings, isLoading: isLoadingSettings, refetch: refetchSettings } = useGetSettingsQuery();
   const [updateSystemSettings, { isLoading: isUpdatingSettings }] = useUpdateSettingsMutation();
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
-
-  // Hooks for Footer Links Tab
   const { data: links, isLoading: isLoadingLinks, error: linksError, refetch: refetchLinks } = useGetFooterLinksQuery();
   const [createLink, { isLoading: isCreatingLink }] = useCreateFooterLinkMutation();
   const [updateLink, { isLoading: isUpdatingLink }] = useUpdateFooterLinkMutation();
   const [deleteLink, { isLoading: isDeletingLink }] = useDeleteFooterLinkMutation();
-  
-  // Hooks for Articles Tab
   const { data: articles, isLoading: isLoadingArticles, error: articlesError, refetch: refetchArticles } = useGetArticlesQuery();
   const [createArticle, { isLoading: isCreatingArticle }] = useCreateArticleMutation();
   const [updateArticle, { isLoading: isUpdatingArticle }] = useUpdateArticleMutation();
   const [deleteArticle, { isLoading: isDeletingArticle }] = useDeleteArticleMutation();
-
-  // State for forms
   const [formState, setFormState] = useState({});
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -56,8 +45,6 @@ const AdminDashboardScreen = () => {
   const [editArticleForm, setEditArticleForm] = useState({});
 
   useEffect(() => { if (settings) { setFormState(settings); } }, [settings]);
-
-  // All handler functions are now at the top level
   const handleToggle = async (userId) => { try { await toggleUserStatus(userId).unwrap(); toast.success('User status updated'); } catch (err) { toast.error(err?.data?.message || err.error); } };
   const handleDeleteUser = async (userId) => { if (window.confirm('Are you sure?')) { try { await deleteUserById(userId).unwrap(); toast.success('User deleted'); refetchUsers(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   const handleDeleteCourse = async (courseId) => { if (window.confirm('Are you sure?')) { try { await deleteCourseById(courseId).unwrap(); toast.success('Course deleted'); refetchCourses(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
@@ -74,7 +61,6 @@ const AdminDashboardScreen = () => {
   const handleDeleteArticle = async (id) => { if (window.confirm('Are you sure?')) { try { await deleteArticle(id).unwrap(); toast.success('Article deleted'); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   const handleEditArticleClick = (article) => { setEditingArticle(article); setEditArticleForm({ title: article.title, description: article.description, publicPages: article.publicPages, contactEmail: article.contactEmail, contactPhone: article.contactPhone }); };
   const handleUpdateArticle = async (e) => { e.preventDefault(); try { await updateArticle({ articleId: editingArticle._id, ...editArticleForm }).unwrap(); toast.success('Article updated'); setEditingArticle(null); } catch (err) { toast.error(err?.data?.message || err.error); } };
-
   const tabs = [
     { key: 'userManagement', label: 'User Management', icon: FaUsers },
     { key: 'courseManagement', label: 'Course Management', icon: FaBook },
@@ -83,36 +69,21 @@ const AdminDashboardScreen = () => {
     { key: 'siteContent', label: 'Site Content', icon: FaPalette },
     { key: 'footerLinks', label: 'Footer Links', icon: FaLink },
   ];
-
+  
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-          <FaUserShield className="mr-3" /> Admin Dashboard
-        </h1>
-        <div className="mt-4 sm:mt-0 sm:hidden">
-          <label htmlFor="tabs" className="sr-only">Select a tab</label>
-          <select id="tabs" name="tabs" className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" value={activeTab} onChange={(e) => setActiveTab(e.target.value)}>
-            {tabs.map((tab) => (<option key={tab.key} value={tab.key}>{tab.label}</option>))}
-          </select>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-800 flex items-center"><FaUserShield className="mr-3" /> Admin Dashboard</h1>
+        <div className="mt-4 sm:mt-0 sm:hidden"><label htmlFor="tabs" className="sr-only">Select a tab</label><select id="tabs" name="tabs" className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" value={activeTab} onChange={(e) => setActiveTab(e.target.value)}>{tabs.map((tab) => (<option key={tab.key} value={tab.key}>{tab.label}</option>))}</select></div>
       </div>
       <div className="hidden sm:block mb-4 border-b border-gray-200">
-        <nav className="-mb-px flex flex-wrap gap-x-8" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`${activeTab === tab.key ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm flex items-center`}>
-              <tab.icon className="mr-2" />{tab.label}
-            </button>
-          ))}
-        </nav>
+        <nav className="-mb-px flex flex-wrap gap-x-8" aria-label="Tabs">{tabs.map((tab) => (<button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`${activeTab === tab.key ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm flex items-center`}><tab.icon className="mr-2" />{tab.label}</button>))}</nav>
       </div>
       
       <div>
         {activeTab === 'userManagement' && (
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="mb-4 border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8" aria-label="Tabs"><button onClick={() => setActiveUserTab('lecturers')} className={`${activeUserTab === 'lecturers' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Lecturers</button><button onClick={() => setActiveUserTab('students')} className={`${activeUserTab === 'students' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Students</button></nav>
-            </div>
+            <div className="mb-4 border-b border-gray-200"><nav className="-mb-px flex space-x-8" aria-label="Tabs"><button onClick={() => setActiveUserTab('lecturers')} className={`${activeUserTab === 'lecturers' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Lecturers</button><button onClick={() => setActiveUserTab('students')} className={`${activeUserTab === 'students' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'} py-4 px-1 border-b-2 font-medium text-sm`}>Manage Students</button></nav></div>
             {isLoadingUsers ? <Loader /> : usersError ? <Message variant="error">{usersError?.data?.message || usersError.error}</Message> : (<ul className="divide-y divide-gray-200">{users && users.length > 0 ? (users.map(user => (<li key={user._id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center"><div className="flex items-center"><img src={user.profileImage || `https://ui-avatars.com/api/?name=${user.name.split(' ').join('+')}&background=random`} alt="Profile" className="w-10 h-10 rounded-full mr-4 object-cover" /><div><p className="font-semibold text-gray-800">{user.name}</p><p className="text-sm text-gray-600">{user.email}</p></div></div><div className="mt-4 sm:mt-0 flex items-center space-x-2 sm:space-x-4 self-start sm:self-center"><div className={`flex items-center text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>{user.isActive ? <FaCheckCircle className="mr-1" /> : <FaTimesCircle className="mr-1" />}{user.isActive ? 'Active' : 'Disabled'}</div><button onClick={() => handleToggle(user._id)} disabled={isToggling} className="bg-yellow-500 text-white text-xs py-1 px-3 rounded hover:bg-yellow-600">{user.isActive ? 'Disable' : 'Enable'}</button><button onClick={() => handleDeleteUser(user._id)} disabled={isDeletingUser} className="bg-red-600 text-white text-xs p-2 rounded-full hover:bg-red-700"><FaTrash /></button></div></li>))) : <Message>No {activeUserTab} found.</Message>}</ul>)}
           </div>
         )}
@@ -180,6 +151,11 @@ const AdminDashboardScreen = () => {
               <h3 className="text-xl font-bold">General Settings</h3>
               <div><label className="block text-gray-700 font-bold mb-2">Site Name</label><input type="text" name="siteName" value={formState.siteName || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Logo</label><img src={formState.logoUrl || '/logo.png'} alt="Logo Preview" className="h-12 w-auto bg-gray-200 p-1 rounded mb-2" /><input type="file" name="logoUrl" data-label="Logo" onChange={handleFileUpload} className="w-full" accept="image/*" /></div>
+              <div>
+                <label className="block text-gray-700 font-bold mb-2">Favicon</label>
+                <img src={formState.faviconUrl || '/vite.svg'} alt="Favicon Preview" className="h-8 w-8 bg-gray-200 p-1 rounded mb-2" />
+                <input type="file" name="faviconUrl" data-label="Favicon" onChange={handleFileUpload} className="w-full" accept="image/png, image/svg+xml, image/x-icon" />
+              </div>
               <hr /><h3 className="text-xl font-bold">Home Page (Hero Section)</h3>
               <div><label className="block text-gray-700 font-bold mb-2">Hero Title</label><input type="text" name="heroTitle" value={formState.heroTitle || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>
               <div><label className="block text-gray-700 font-bold mb-2">Hero Text</label><textarea name="heroText" rows="3" value={formState.heroText || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded" /></div>

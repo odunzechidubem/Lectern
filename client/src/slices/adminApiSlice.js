@@ -46,4 +46,4 @@ export const {
   useUpdateSystemSettingsMutation,
   useGetAllCoursesQuery,
   useDeleteCourseByIdMutation,
-} = adminApiSlice;
+} = adminApiSlice; 

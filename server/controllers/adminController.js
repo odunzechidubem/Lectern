@@ -102,4 +102,4 @@ export {
   updateSystemSettings,
   getAllCourses,
   deleteCourseById,
-};
+}; 
