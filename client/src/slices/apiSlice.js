@@ -1,10 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// In development, `import.meta.env.DEV` is true, so the baseUrl is a relative path.
-// The Vite proxy will intercept this and forward it to http://localhost:5000.
-// In production (on Netlify), `import.meta.env.PROD` is true, so the baseUrl
-// becomes your live Render URL from the environment variable.
-const baseUrl = import.meta.env.PROD ? import.meta.env.VITE_API_URL : '/api';
+// Use the Vite environment variable for the backend URL.
+// In local development, this will be undefined, so it falls back to a relative path for the proxy.
+// In production on Netlify, this will be your live Render URL.
+const baseUrl = import.meta.env.VITE_API_URL || '/api';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseUrl,

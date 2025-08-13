@@ -8,11 +8,9 @@ import Notification from './models/notificationModel.js';
 const userSocketMap = new Map();
 
 export const initSocketServer = (server) => {
-  // --- THIS IS THE DEFINITIVE FIX ---
-  // The allowedOrigins array now uses environment variables for both URLs.
   const allowedOrigins = [
-    process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
-    process.env.FRONTEND_URL,     // e.g., https://lecternn.netlify.app
+    'http://localhost:5173',
+    process.env.FRONTEND_URL,
   ];
 
   const io = new Server(server, {

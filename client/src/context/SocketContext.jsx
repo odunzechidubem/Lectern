@@ -2,10 +2,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 
-// --- THIS IS THE DEFINITIVE FIX ---
-// In development, it will connect to http://localhost:5000.
+// In local development, this will connect to http://localhost:5000.
 // In production, it will connect to your live Render URL.
-const SOCKET_URL = import.meta.env.PROD ? import.meta.env.VITE_API_URL : 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const SocketContext = createContext();
 

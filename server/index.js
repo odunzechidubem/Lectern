@@ -15,7 +15,7 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import footerLinkRoutes from './routes/footerLinkRoutes.js';
+import footerLinkRoutes from './routes/footerLinkRoutes.js'; 
 import chatRoutes from './routes/chatRoutes.js';
 import articleRoutes from './routes/articleRoutes.js';
 
@@ -32,17 +32,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- THIS IS THE DEFINITIVE FIX ---
 const allowedOrigins = [
-  process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
-  process.env.FRONTEND_URL,     // e.g., https://lecternn.netlify.app
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      // or if the origin is in our allowed list.
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
