@@ -16,6 +16,7 @@ export const SocketProvider = ({ children }) => {
     if (userInfo) {
       // Connect to the LIVE backend URL
       const newSocket = io('https://lectern-usqo.onrender.com', {
+      // const newSocket = io('http://localhost:5000', {
         withCredentials: true,
       });
       setSocket(newSocket);
