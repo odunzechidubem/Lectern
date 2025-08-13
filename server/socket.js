@@ -8,15 +8,17 @@ import Notification from './models/notificationModel.js';
 const userSocketMap = new Map();
 
 export const initSocketServer = (server) => {
+  // --- THIS IS THE DEFINITIVE FIX ---
+  // The allowedOrigins array now uses environment variables for both URLs.
   const allowedOrigins = [
-    'http://localhost:5173',
-    process.env.FRONTEND_URL,
+    process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
+    process.env.FRONTEND_URL,     // e.g., https://lecternn.netlify.app
   ];
 
   const io = new Server(server, {
     cors: {
       origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));
@@ -62,20 +64,16 @@ export const initSocketServer = (server) => {
       if (!content || !courseId) return;
 
       try {
-        // Step 1: Save the message to the database
         const message = await Message.create({
           course: courseId,
           sender: socket.user._id,
           content,
         });
 
-        // Step 2: Populate the sender's details for the chat UI
         const populatedMessage = await Message.findById(message._id).populate('sender', 'name profileImage');
         
-        // Step 3: THIS IS THE FIX - Broadcast the new message to everyone in the room
         io.to(courseId).emit('newMessage', populatedMessage);
 
-        // Step 4: Create notifications for all OTHER participants in the room
         const course = await Course.findById(courseId);
         if (!course) return;
 
