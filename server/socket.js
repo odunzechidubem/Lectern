@@ -8,18 +8,13 @@ import Notification from './models/notificationModel.js';
 const userSocketMap = new Map();
 
 export const initSocketServer = (server) => {
+  // --- THIS IS THE DEFINITIVE FIX ---
   const allowedOrigins = [
-    process.env.DEV_FRONTEND_URL,
-    process.env.FRONTEND_URL,
+    process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
+    process.env.FRONTEND_URL,     // e.g., https://lecternn.netlify.app
   ];
 
   const io = new Server(server, {
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // Production-grade settings for compatibility with services like Render
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    transports: ['polling', 'websocket'], // Prefer polling, but allow websocket as fallback
-
     cors: {
       origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -54,8 +49,10 @@ export const initSocketServer = (server) => {
     socket.on('joinCourse', async (courseId) => {
       const course = await Course.findById(courseId);
       if (!course) return;
+
       const isLecturer = course.lecturer.toString() === socket.user._id.toString();
       const isEnrolled = course.students.some(s => s.toString() === socket.user._id.toString());
+
       if (isLecturer || isEnrolled) {
         socket.join(courseId);
         console.log(`${socket.user.name} joined room: ${courseId}`);
@@ -64,25 +61,45 @@ export const initSocketServer = (server) => {
 
     socket.on('sendMessage', async ({ courseId, content }) => {
       if (!content || !courseId) return;
+
       try {
-        const message = await Message.create({ course: courseId, sender: socket.user._id, content });
+        const message = await Message.create({
+          course: courseId,
+          sender: socket.user._id,
+          content,
+        });
+
         const populatedMessage = await Message.findById(message._id).populate('sender', 'name profileImage');
+        
         io.to(courseId).emit('newMessage', populatedMessage);
+
         const course = await Course.findById(courseId);
         if (!course) return;
+
         const participants = [course.lecturer, ...course.students];
-        const recipients = participants.filter((p) => p.toString() !== socket.user._id.toString());
+        const recipients = participants.filter(
+          (p) => p.toString() !== socket.user._id.toString()
+        );
+
         if (recipients.length > 0) {
           const notificationMessage = `${socket.user.name} sent a new message in "${course.title}".`;
           const link = `/course/${courseId}/chat`;
-          const notifications = recipients.map(userId => ({ user: userId, message: notificationMessage, link }));
+          
+          const notifications = recipients.map(userId => ({
+            user: userId,
+            message: notificationMessage,
+            link,
+          }));
+
           await Notification.insertMany(notifications);
+          
           recipients.forEach(userId => {
             const socketId = userSocketMap.get(userId.toString());
             if (socketId) {
               io.to(socketId).emit('newNotification');
             }
           });
+          console.log(`Created and Pushed ${notifications.length} chat notifications.`);
         }
       } catch (error) {
         console.error('Error in sendMessage handler:', error);

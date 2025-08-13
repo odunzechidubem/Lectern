@@ -32,14 +32,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- THIS IS THE DEFINITIVE FIX ---
 const allowedOrigins = [
-  'http://localhost:5173',
-  process.env.FRONTEND_URL,
+  process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
+  process.env.FRONTEND_URL,     // e.g., https://lecternn.netlify.app
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman) 
+      // or if the origin is in our allowed list.
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
