@@ -15,10 +15,11 @@ export const initSocketServer = (server) => {
 
   const io = new Server(server, {
     // --- THIS IS THE DEFINITIVE FIX ---
-    // This tells Socket.IO to allow connections via standard HTTP polling,
-    // which is more compatible with services like Render's free tier.
-    transports: ['polling', 'websocket'],
-    
+    // Production-grade settings for compatibility with services like Render
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['polling', 'websocket'], // Prefer polling, but allow websocket as fallback
+
     cors: {
       origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
