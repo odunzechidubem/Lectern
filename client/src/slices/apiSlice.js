@@ -1,13 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Use the Vite environment variable for the backend URL.
-// In local development, this will be undefined, so it falls back to a relative path for the proxy.
-// In production on Netlify, this will be your live Render URL.
-const baseUrl = import.meta.env.VITE_API_URL || '/api';
+// This is the absolute URL of your LIVE backend server.
+const BASE_URL = 'https://lectern-usqo.onrender.com';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: baseUrl,
-  credentials: 'include',
+  baseUrl: BASE_URL,
+  credentials: 'include', // This is crucial for sending cookies cross-domain
 });
 
 export const apiSlice = createApi({
