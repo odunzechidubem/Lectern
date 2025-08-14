@@ -19,7 +19,7 @@ export const SocketProvider = ({ children }) => {
       // --- THIS IS THE DEFINITIVE FIX ---
       const newSocket = io(SOCKET_URL, {
         withCredentials: true,
-        transports: ['polling', 'websocket'], // Match the server's preference
+        transports: ['polling', 'websocket'], // Force polling
       });
       setSocket(newSocket);
       return () => {
