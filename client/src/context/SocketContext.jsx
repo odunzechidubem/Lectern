@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 const SocketContext = createContext();
 
 export const useSocket = () => {
@@ -16,10 +14,9 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (userInfo) {
-      // --- THIS IS THE DEFINITIVE FIX ---
-      const newSocket = io(SOCKET_URL, {
+      // Connect to the LIVE backend URL
+      const newSocket = io('https://lectern-usqo.onrender.com', {
         withCredentials: true,
-        transports: ['polling', 'websocket'], // Force polling
       });
       setSocket(newSocket);
       return () => {
