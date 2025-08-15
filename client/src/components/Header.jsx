@@ -56,7 +56,8 @@ const Header = () => {
     location.pathname !== '/register' &&
     !location.pathname.startsWith('/reset-password') &&
     location.pathname !== '/' && // Hides the button on the homepage
-    location.pathname !== '/about'; // Hides the button on the about page
+    location.pathname !== '/about' && // Hides the button on the about page
+    !location.pathname.startsWith('/course'); // Hides the button on course pages
 
   return (
     <>
