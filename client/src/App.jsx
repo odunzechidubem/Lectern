@@ -14,6 +14,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import InactivityHandler from './components/InactivityHandler';
+import FullScreenLoader from './components/FullScreenLoader'; // <-- IMPORT THE NEW LOADER
 
 // --- Route Protection Components ---
 import PrivateRoute from './components/PrivateRoute';
@@ -49,8 +50,8 @@ function App() {
   const { userInfo } = useSelector((state) => state.auth);
   const [logoutApiCall] = useLogoutMutation();
 
-  // --- THIS IS THE FIX for Site Title and Favicon ---
-  const { data: settings } = useGetSettingsQuery();
+  // Fetch the essential site settings at the highest level of the application.
+  const { data: settings, isLoading: isLoadingSettings, error: settingsError } = useGetSettingsQuery();
 
   useEffect(() => {
     if (settings) {
@@ -63,7 +64,6 @@ function App() {
       }
     }
   }, [settings]);
-  // --- END OF FIX ---
 
   useEffect(() => {
     if (socket && userInfo) {
@@ -86,6 +86,21 @@ function App() {
     }
   }, [socket, userInfo, dispatch, logoutApiCall]);
   
+  // --- NEW "GATEKEEPER" LOGIC ---
+  // If the essential settings are still loading, show the full-screen loader.
+  if (isLoadingSettings) {
+    return <FullScreenLoader />;
+  }
+
+  // If the settings failed to load, show a critical error message.
+  if (settingsError) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-red-50 text-red-800">
+        Could not load essential application data. Please try again later.
+      </div>
+    );
+  }
+
   return (
     <Router>
       <ScrollToTop />
