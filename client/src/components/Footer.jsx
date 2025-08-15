@@ -16,7 +16,7 @@ const Footer = () => {
           <Link to="/">
             <h3 className="text-lg font-bold mb-4 flex items-center justify-center md:justify-start">
               <img src={settings?.logoUrl || '/logo.png'} alt="Site Logo" className="h-8 w-auto mr-2" />
-              <span>{settings?.siteName || 'site name here'}</span>
+              <span>{settings?.siteName || ''}</span>
             </h3>
           </Link>
 
@@ -55,7 +55,7 @@ const Footer = () => {
         </div>
         
         <div className="mt-8 border-t border-gray-700 pt-4 text-center text-gray-500">
-          <p>© {currentYear} {settings?.siteName || 'site name here'}. All Rights Reserved.</p>
+          <p>© {currentYear} {settings?.siteName || ''}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>
