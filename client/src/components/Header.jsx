@@ -7,6 +7,7 @@ import { useGetSettingsQuery } from '../slices/settingsApiSlice';
 import { FaSignInAlt, FaUser } from 'react-icons/fa';
 import Notifications from './Notifications';
 import LanguageSelector from './LanguageSelector';
+import ThemeToggle from './ThemeToggle';
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -16,7 +17,6 @@ const Header = () => {
   const navigate = useNavigate();
   const [logoutApiCall] = useLogoutMutation();
   const { data: settings } = useGetSettingsQuery();
-  
   const location = useLocation();
   const desktopTranslateRef = useRef(null);
   const mobileTranslateRef = useRef(null);
@@ -46,22 +46,14 @@ const Header = () => {
   const logoutHandler = async () => { try { await logoutApiCall().unwrap(); dispatch(clearCredentials()); navigate('/login'); } catch (err) { console.error(err); } };
   const handleNavigate = (path) => { setIsDropdownOpen(false); navigate(path); };
 
-  const showSignInLink =
-    location.pathname !== '/login' &&
-    location.pathname !== '/forgot-password';
-
-  // --- THIS IS THE DEFINITIVE FIX ---
-  // The new condition `location.pathname !== '/about'` is added here.
-  const showSignUpLink =
-    location.pathname !== '/register' &&
-    !location.pathname.startsWith('/reset-password') &&
-    location.pathname !== '/' && // Hides the button on the homepage
-    location.pathname !== '/about' && // Hides the button on the about page
-    !location.pathname.startsWith('/course'); // Hides the button on course pages
+  const showSignInLink = location.pathname !== '/login' && location.pathname !== '/forgot-password';
+  const showSignUpLink = location.pathname !== '/register' && !location.pathname.startsWith('/reset-password') && location.pathname !== '/' && location.pathname !== '/about' && !location.pathname.startsWith('/course');
 
   return (
     <>
-      <header className="bg-gray-800 text-white shadow-lg">
+      {/* --- THIS IS THE FIX for Static Header --- */}
+      {/* fixed, top-0, left-0, right-0, and z-50 make it stick to the top */}
+      <header className="bg-gray-800 text-white shadow-lg fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto flex justify-between items-center p-4">
           <Link to={userInfo && userInfo.role === 'superAdmin' ? '/admin/dashboard' : '/'} className="flex items-center min-w-0">
             <img src={settings?.logoUrl || ''} alt={settings?.siteName || 'Site Logo'} className="h-10 w-auto flex-shrink-0" />
@@ -71,6 +63,7 @@ const Header = () => {
             <ul className="flex items-center space-x-2 sm:space-x-4">
               <LanguageSelector />
               <li ref={desktopTranslateRef} className="hidden md:block notranslate"></li>
+              <li><ThemeToggle /></li>
               {userInfo ? (
                 <>
                   {(userInfo.role === 'student' || userInfo.role === 'lecturer') && (<li><Notifications /></li>)}
@@ -81,31 +74,28 @@ const Header = () => {
                       <span className="ml-1 text-xs">▾</span>
                     </button>
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                        <button onClick={() => handleNavigate(userInfo.role === 'superAdmin' ? '/admin/dashboard' : userInfo.role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</button>
-                        <button onClick={() => handleNavigate('/profile')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</button>
-                        {userInfo.role === 'student' && (<button onClick={() => handleNavigate('/my-grades')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Grades</button>)}
-                        {userInfo.role !== 'superAdmin' && (<Link to="/" state={{ scrollToCourses: true }} onClick={() => setIsDropdownOpen(false)} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t mt-1 pt-1">All Courses</Link>)}
-                        <button onClick={() => { setIsDropdownOpen(false); logoutHandler(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 dark:bg-gray-700 dark:border dark:border-gray-600">
+                        <button onClick={() => handleNavigate(userInfo.role === 'superAdmin' ? '/admin/dashboard' : userInfo.role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600">Dashboard</button>
+                        <button onClick={() => handleNavigate('/profile')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600">My Profile</button>
+                        {userInfo.role === 'student' && (<button onClick={() => handleNavigate('/my-grades')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600">My Grades</button>)}
+                        {userInfo.role !== 'superAdmin' && (<Link to="/" state={{ scrollToCourses: true }} onClick={() => setIsDropdownOpen(false)} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 border-t border-gray-200 dark:border-gray-600 mt-1 pt-1">All Courses</Link>)}
+                        <button onClick={() => { setIsDropdownOpen(false); logoutHandler(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600">Logout</button>
                       </div>
                     )}
                   </li>
                 </>
               ) : (
                 <>
-                  {showSignInLink && (
-                    <li><Link to="/login" className="flex items-center hover:text-gray-300"><FaSignInAlt className="mr-2" /> Sign In</Link></li>
-                  )}
-                  {showSignUpLink && (
-                    <li><Link to="/register" className="flex items-center hover:text-gray-300"><FaUser className="mr-2" /> Sign Up</Link></li>
-                  )}
+                  {showSignInLink && (<li><Link to="/login" className="flex items-center hover:text-gray-300"><FaSignInAlt className="mr-2" /> Sign In</Link></li>)}
+                  {showSignUpLink && (<li><Link to="/register" className="flex items-center hover:text-gray-300"><FaUser className="mr-2" /> Sign Up</Link></li>)}
                 </>
               )}
             </ul>
           </nav>
         </div>
       </header>
-      <div ref={mobileTranslateRef} className="md:hidden bg-white-700 p-2 flex justify-center notranslate"></div>
+      {/* The mobile translate widget is correctly preserved here */}
+      <div ref={mobileTranslateRef} className="md:hidden flex justify-center notranslate"></div>
     </>
   );
 };

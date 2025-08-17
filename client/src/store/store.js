@@ -1,19 +1,26 @@
 // src/store/store.js
 import { configureStore } from '@reduxjs/toolkit';
-import { apiSlice } from '../slices/apiSlice';
-import authReducer from '../slices/authSlice'; // Import the default export
+import { apiSlice } from '../slices/apiSlice';   // RTK Query API slice
+import authReducer from '../slices/authSlice';   // Authentication state
+import themeReducer from '../slices/themeSlice'; // Dark/Light mode state
 
 const store = configureStore({
   reducer: {
-    // Add the apiSlice reducer to the store
+    // RTK Query API reducer (handles caching, requests, etc.)
     [apiSlice.reducerPath]: apiSlice.reducer,
-    // Add the auth state reducer
+
+    // Authentication state reducer
     auth: authReducer,
+
+    // Theme (UI) state reducer
+    theme: themeReducer,
   },
-  // Adding the api middleware enables caching, invalidation, polling, etc.
   middleware: (getDefaultMiddleware) =>
+    // Add RTK Query middleware for caching, polling, etc.
     getDefaultMiddleware().concat(apiSlice.middleware),
-  devTools: true,
+
+  // Enable Redux DevTools only in development mode (safer for production)
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
 export default store;

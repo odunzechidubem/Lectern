@@ -14,7 +14,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import InactivityHandler from './components/InactivityHandler';
-import FullScreenLoader from './components/FullScreenLoader'; // <-- IMPORT THE NEW LOADER
+import FullScreenLoader from './components/FullScreenLoader';
 
 // --- Route Protection Components ---
 import PrivateRoute from './components/PrivateRoute';
@@ -43,56 +43,49 @@ import CourseEditScreen from './screens/CourseEditScreen';
 import SubmissionsScreen from './screens/SubmissionsScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 
-
 function App() {
   const dispatch = useDispatch();
   const socket = useSocket();
   const { userInfo } = useSelector((state) => state.auth);
   const [logoutApiCall] = useLogoutMutation();
 
-  // Fetch the essential site settings at the highest level of the application.
   const { data: settings, isLoading: isLoadingSettings, error: settingsError } = useGetSettingsQuery();
+
+  // --- THIS IS THE FIX for Light/Dark Mode ---
+  const { theme } = useSelector((state) => state.theme);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+  // --- END OF FIX ---
 
   useEffect(() => {
     if (settings) {
-      if (settings.siteName) {
-        document.title = settings.siteName;
-      }
+      if (settings.siteName) { document.title = settings.siteName; }
       const favicon = document.getElementById('favicon');
-      if (favicon && settings.faviconUrl) {
-        favicon.href = settings.faviconUrl;
-      }
+      if (favicon && settings.faviconUrl) { favicon.href = settings.faviconUrl; }
     }
   }, [settings]);
 
   useEffect(() => {
     if (socket && userInfo) {
-      const handleForceLogout = (data) => {
-        toast.error(data.message || 'Your session has been terminated.');
-        logoutApiCall();
-        dispatch(clearCredentials());
-      };
+      const handleForceLogout = (data) => { toast.error(data.message || 'Your session has been terminated.'); logoutApiCall(); dispatch(clearCredentials()); };
       socket.on('force-logout', handleForceLogout);
-      
-      const handleNewNotification = () => {
-        dispatch(apiSlice.util.invalidateTags(['Notifications']));
-      };
+      const handleNewNotification = () => { dispatch(apiSlice.util.invalidateTags(['Notifications'])); };
       socket.on('newNotification', handleNewNotification);
-      
-      return () => {
-        socket.off('force-logout', handleForceLogout);
-        socket.off('newNotification', handleNewNotification);
-      };
+      return () => { socket.off('force-logout', handleForceLogout); socket.off('newNotification', handleNewNotification); };
     }
   }, [socket, userInfo, dispatch, logoutApiCall]);
   
-  // --- NEW "GATEKEEPER" LOGIC ---
-  // If the essential settings are still loading, show the full-screen loader.
   if (isLoadingSettings) {
     return <FullScreenLoader />;
   }
 
-  // If the settings failed to load, show a critical error message.
   if (settingsError) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-red-50 text-red-800">
@@ -105,14 +98,11 @@ function App() {
     <Router>
       <ScrollToTop />
       <InactivityHandler />
-      
       <div className="flex flex-col min-h-screen">
         <Header />
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
-        
-        <main className="flex-grow flex">
+        <main className="flex-grow flex pt-20">
           <Routes>
-            {/* --- Public Routes --- */}
             <Route path="/" element={<HomeScreen />} />
             <Route path="/about" element={<div className="container mx-auto px-4 py-8 w-full"><AboutScreen /></div>} />
             <Route path="/login" element={<div className="container mx-auto px-4 py-8 w-full"><LoginScreen /></div>} />
@@ -121,36 +111,27 @@ function App() {
             <Route path="/reset-password/:token" element={<div className="container mx-auto px-4 py-8 w-full"><ResetPasswordScreen /></div>} />
             <Route path="/course/:id" element={<div className="container mx-auto px-4 py-8 w-full"><CourseScreen /></div>} />
             <Route path="/verify-email-change/:token" element={<div className="container mx-auto px-4 py-8 w-full"><VerifyEmailChangeScreen /></div>} />
-            
-            {/* --- Private Routes (All roles) --- */}
             <Route path="" element={<PrivateRoute />}>
               <Route path="/course/:courseId/lecture/:lectureIndex" element={<div className="container mx-auto px-4 py-8 w-full"><LectureScreen /></div>} />
               <Route path="/profile" element={<div className="container mx-auto px-4 py-8 w-full"><ProfileScreen /></div>} />
               <Route path="/course/:courseId/chat" element={<div className="container mx-auto px-4 py-8 w-full"><ChatScreen /></div>} />
             </Route>
-
-            {/* --- Private (Lecturer only) --- */}
             <Route path="" element={<LecturerRoute />}>
               <Route path="/lecturer/dashboard" element={<div className="container mx-auto px-4 py-8 w-full"><LecturerDashboardScreen /></div>} />
               <Route path="/lecturer/course/create" element={<div className="container mx-auto px-4 py-8 w-full"><CreateCourseScreen /></div>} />
               <Route path="/lecturer/course/:id/edit" element={<div className="container mx-auto px-4 py-8 w-full"><CourseEditScreen /></div>} />
               <Route path="/lecturer/course/:courseId/assignment/:assignmentId/submissions" element={<div className="container mx-auto px-4 py-8 w-full"><SubmissionsScreen /></div>} />
             </Route>
-
-            {/* --- Private (Student only) --- */}
             <Route path="" element={<StudentRoute />}>
               <Route path="/student/dashboard" element={<div className="container mx-auto px-4 py-8 w-full"><StudentDashboardScreen /></div>} />
               <Route path="/course/:courseId/assignment/:assignmentId" element={<div className="container mx-auto px-4 py-8 w-full"><AssignmentScreen /></div>} />
               <Route path="/my-grades" element={<div className="container mx-auto px-4 py-8 w-full"><MyGradesScreen /></div>} />
             </Route>
-
-            {/* --- Private (Admin only) --- */}
             <Route path="" element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<div className="container mx-auto px-4 py-8 w-full"><AdminDashboardScreen /></div>} />
             </Route>
           </Routes>
         </main>
-
         <Footer />
       </div>
     </Router>

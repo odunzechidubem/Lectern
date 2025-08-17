@@ -2,4 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* You can add any of your own global base styles below here if needed */
+/* --- THIS IS THE DEFINITIVE FIX --- */
+/* We add padding to the top of the entire page. */
+/* This value (80px) is a good estimate for the header's height + the mobile translate widget. */
+/* This pushes ALL content down, creating space for the fixed header and widget. */
+body {
+  padding-top: 80px; 
+  @apply bg-gray-50 text-gray-900 transition-colors duration-300;
+}
+
+/* --- END OF FIX --- */
+
+.dark body {
+  @apply bg-gray-900 text-gray-200;
+}
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+.dark .text-gray-800 { @apply text-gray-100; }
+.dark .text-gray-700 { @apply text-gray-200; }
+.dark .text-gray-600 { @apply text-gray-300; }
+.dark .text-gray-500 { @apply text-gray-400; }
+.dark .border-gray-200 { @apply border-gray-700; }
+.dark .border-gray-300 { @apply border-gray-600; }
+.dark .hover\:bg-gray-50:hover { @apply bg-gray-700; }
+.dark .hover\:bg-gray-100:hover { @apply bg-gray-700; }
+
+/* For form inputs in dark mode */
+.dark input, .dark textarea, .dark select {
+  @apply bg-gray-700 text-gray-200 border-gray-600;
+}
+
+/* This section avoids circular dependencies by setting CSS properties directly. */
+/* It ensures that any element that KEEPS a light background in dark mode */
+/* will have dark, readable text. */
+.dark .bg-gray-200, .dark a.bg-gray-200 {
+  color: #1f2937; /* This is the hex code for Tailwind's text-gray-800 */
+}
+.dark a.bg-gray-200:hover {
+  background-color: #d1d5db; /* This is the hex code for Tailwind's bg-gray-300 */
+}
+.dark .bg-green-100 {
+  color: #166534; /* text-green-800 */
+}
+.dark .bg-blue-100 {
+  color: #1e40af; /* text-blue-800 */
+}
+.dark .bg-yellow-500 {
+  color: white;
+}

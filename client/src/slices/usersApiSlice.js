@@ -14,6 +14,9 @@ export const usersApiSlice = apiSlice.injectEndpoints({
     changePassword: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/profile/change-password`, method: 'PUT', body: data }) }),
     deleteAccount: builder.mutation({ query: () => ({ url: `${USERS_URL}/profile`, method: 'DELETE' }) }),
     requestEmailChange: builder.mutation({ query: (data) => ({ url: `${USERS_URL}/profile/request-email-change`, method: 'PUT', body: data }) }),
+    checkAuthStatus: builder.query({
+      query: () => ({ url: `${USERS_URL}/check-auth` }),
+    }),
   }),
 });
 
@@ -22,5 +25,5 @@ export const {
   useGetEnrolledCoursesQuery, useGetMySubmissionsQuery,
   useForgotPasswordMutation, useResetPasswordMutation,
   useUpdateProfileMutation, useChangePasswordMutation, useDeleteAccountMutation,
-  useRequestEmailChangeMutation,
+  useRequestEmailChangeMutation, useCheckAuthStatusQuery,
 } = usersApiSlice;
