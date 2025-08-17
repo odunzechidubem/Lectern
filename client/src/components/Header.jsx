@@ -95,7 +95,11 @@ const Header = () => {
         </div>
       </header>
       {/* The mobile translate widget is correctly preserved here */}
-      <div ref={mobileTranslateRef} className="md:hidden flex justify-center notranslate"></div>
+      <div
+  ref={mobileTranslateRef}
+  className="md:hidden flex justify-center notranslate relative z-40 p-2 mt-[76px]"
+></div>
+
     </>
   );
 };

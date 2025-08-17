@@ -7,7 +7,7 @@
 /* This value (80px) is a good estimate for the header's height + the mobile translate widget. */
 /* This pushes ALL content down, creating space for the fixed header and widget. */
 body {
-  padding-top: 80px; 
+  /* padding-top: 80px;  */
   @apply bg-gray-50 text-gray-900 transition-colors duration-300;
 }
 

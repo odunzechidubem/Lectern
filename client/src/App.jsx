@@ -101,7 +101,7 @@ function App() {
       <div className="flex flex-col min-h-screen">
         <Header />
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
-        <main className="flex-grow flex pt-20">
+        <main className="flex-grow flex pt-[0px] md:pt-20">
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/about" element={<div className="container mx-auto px-4 py-8 w-full"><AboutScreen /></div>} />
