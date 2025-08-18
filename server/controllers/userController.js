@@ -8,7 +8,6 @@ import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
-// All other functions are correct and included for completeness
 const registerUser = asyncHandler(async (req, res) => { const { name, email, password, role } = req.body; const settings = await Settings.findOne({ singleton: 'system_settings' }); if (settings) { if (role === 'student' && !settings.isStudentRegistrationEnabled) { res.status(403); throw new Error('New student registration is currently disabled.'); } if (role === 'lecturer' && !settings.isLecturerRegistrationEnabled) { res.status(403); throw new Error('New lecturer registration is currently disabled.'); } } const userExists = await User.findOne({ email }); if (userExists) { res.status(400); throw new Error('User already exists'); } const user = await User.create({ name, email, password, role }); if (user) { const verificationToken = user.createVerificationToken(); await user.save({ validateBeforeSave: false }); const verifyUrl = `${req.protocol}://${req.get('host')}/api/users/verify/${verificationToken}`; const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`; try { await sendEmail({ email: user.email, subject: 'LMS Email Verification', html: message }); res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' }); } catch (err) { await User.findByIdAndDelete(user._id); res.status(500); throw new Error('Email could not be sent. Please try again.'); } } else { res.status(400); throw new Error('Invalid user data'); } });
 const authUser = asyncHandler(async (req, res) => { const { email, password } = req.body; const user = await User.findOne({ email }); if (!user || !(await user.matchPassword(password))) { res.status(401); throw new Error('Invalid email or password'); } if (!user.isVerified) { res.status(403); throw new Error('Please verify your email before logging in.'); } if (!user.isActive) { res.status(403); throw new Error('Your account has been disabled. Please contact an administrator.'); } let hasEnrolledCourses = false; if (user.role === 'student') { const enrollmentCount = await Course.countDocuments({ students: user._id }); if (enrollmentCount > 0) { hasEnrolledCourses = true; } } generateToken(res, user._id); res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, profileImage: user.profileImage, hasEnrolledCourses, }); });
 const verifyEmail = asyncHandler(async (req, res) => { const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex'); const user = await User.findOne({ verificationToken, verificationTokenExpires: { $gt: Date.now() } }); if (!user) { res.status(400); throw new Error('Invalid or expired verification token.'); } user.isVerified = true; user.verificationToken = undefined; user.verificationTokenExpires = undefined; await user.save(); res.status(200).send('<h1>Email Verified</h1><p>Your email has been successfully verified. You can now close this tab and log in.</p>'); });
@@ -27,50 +26,51 @@ const requestEmailChange = asyncHandler(async (req, res) => { const { newEmail }
 const verifyEmailChange = asyncHandler(async (req, res) => {
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
   
-  // Step 1: Find the user with the valid token.
-  const userToUpdate = await User.findOne({
+  const user = await User.findOne({
     emailChangeToken: hashedToken,
     emailChangeTokenExpires: { $gt: Date.now() },
   });
 
-  if (!userToUpdate || !userToUpdate.newEmail) {
+  if (!user || !user.newEmail) {
     res.status(400);
     throw new Error('Token is invalid, has expired, or the change process was interrupted.');
   }
 
-  // Step 2: Final check to prevent race conditions where the new email was taken
-  const emailAlreadyExists = await User.findOne({ email: userToUpdate.newEmail });
+  const emailAlreadyExists = await User.findOne({ email: user.newEmail });
   if (emailAlreadyExists) {
     res.status(400);
     throw new Error('This email address has been taken by another account since your request.');
   }
 
-  // Step 3: Use a direct, atomic update operation.
-  const updatedUser = await User.findByIdAndUpdate(
-    userToUpdate._id,
-    {
-      $set: { email: userToUpdate.newEmail },
-      $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 }
-    },
-    { new: true } // Return the updated document to ensure it worked
-  );
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      {
+        $set: { email: user.newEmail },
+        $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 }
+      },
+      { new: true }
+    );
 
-  if (!updatedUser) {
-    res.status(500);
-    throw new Error('An error occurred while updating your email. Please try again.');
-  }
+    if (!updatedUser) {
+      throw new Error('User could not be updated.');
+    }
+    
+    const { userSocketMap, io } = req;
+    const userSocketId = userSocketMap.get(updatedUser._id.toString());
+    if (userSocketId) {
+      io.to(userSocketId).emit('force-logout', {
+        message: 'Your email has been changed. Please log in with your new email address.',
+      });
+    }
+
+    res.status(200).send('<h1>Email Successfully Updated</h1><p>Your email address has been changed. Your previous session has been logged out. You can now close this tab and log in with your new email.</p>');
   
-  // Step 4: Force logout the user's active session.
-  const { userSocketMap, io } = req;
-  const userSocketId = userSocketMap.get(updatedUser._id.toString());
-  if (userSocketId) {
-    io.to(userSocketId).emit('force-logout', {
-      message: 'Your email has been changed. Please log in with your new email address.',
-    });
+  } catch (error) {
+    console.error("Error saving email change:", error);
+    res.status(500);
+    throw new Error("An error occurred while updating your email. Please try again.");
   }
-
-  res.status(200).send('<h1>Email Successfully Updated</h1><p>Your email address has been changed. Your previous session has been logged out. You can now close this tab and log in with your new email.</p>');
 });
-
 
 export { registerUser, authUser, logoutUser, verifyEmail, getEnrolledCourses, getMySubmissions, forgotPassword, resetPassword, getUserProfile, updateUserProfile, changeUserPassword, deleteUserAccount, requestEmailChange, verifyEmailChange };
