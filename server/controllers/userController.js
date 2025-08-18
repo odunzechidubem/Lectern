@@ -26,6 +26,7 @@ const requestEmailChange = asyncHandler(async (req, res) => { const { newEmail }
 const verifyEmailChange = asyncHandler(async (req, res) => {
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
   
+  // Find the user with the valid token and pending new email
   const user = await User.findOne({
     emailChangeToken: hashedToken,
     emailChangeTokenExpires: { $gt: Date.now() },
@@ -36,6 +37,7 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
     throw new Error('Token is invalid, has expired, or the change process was interrupted.');
   }
 
+  // Final check to prevent race conditions where the new email was taken
   const emailAlreadyExists = await User.findOne({ email: user.newEmail });
   if (emailAlreadyExists) {
     res.status(400);
@@ -43,19 +45,21 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
   }
 
   try {
+    // Atomically find the user by their ID and perform the update
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
       {
         $set: { email: user.newEmail },
         $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 }
       },
-      { new: true }
+      { new: true } // Return the updated document
     );
 
     if (!updatedUser) {
       throw new Error('User could not be updated.');
     }
     
+    // Force logout the user's active session
     const { userSocketMap, io } = req;
     const userSocketId = userSocketMap.get(updatedUser._id.toString());
     if (userSocketId) {
@@ -67,6 +71,7 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
     res.status(200).send('<h1>Email Successfully Updated</h1><p>Your email address has been changed. Your previous session has been logged out. You can now close this tab and log in with your new email.</p>');
   
   } catch (error) {
+    // This will catch any validation error from the update attempt
     console.error("Error saving email change:", error);
     res.status(500);
     throw new Error("An error occurred while updating your email. Please try again.");
