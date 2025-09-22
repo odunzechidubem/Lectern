@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearCredentials } from '../slices/authSlice';
 import Loader from '../components/Loader';
 import { Link } from 'react-router-dom';
+import Meta from '../components/Meta';
 
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState('');
@@ -32,6 +33,8 @@ const ForgotPasswordScreen = () => {
   };
 
   return (
+    <>
+      <Meta title="Lectern | Forgot Password" description="Reset your Lectern account password" />
     <div className="flex justify-center">
       <form className="p-8 mt-10 bg-white rounded shadow-md w-96" onSubmit={submitHandler}>
         <h1 className="text-2xl font-bold mb-4 text-gray-700">Forgot Password</h1>
@@ -48,6 +51,7 @@ const ForgotPasswordScreen = () => {
         </div>
       </form>
     </div>
+    </>
   );
 };
 export default ForgotPasswordScreen;

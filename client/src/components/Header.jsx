@@ -56,7 +56,7 @@ const Header = () => {
       <header className="bg-gray-800 text-white shadow-lg fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto flex justify-between items-center p-4">
           <Link to={userInfo && userInfo.role === 'superAdmin' ? '/admin/dashboard' : '/'} className="flex items-center min-w-0">
-            <img src={settings?.logoUrl || ''} alt={settings?.siteName || 'Site Logo'} className="h-10 w-auto flex-shrink-0" />
+            <img src={settings?.logoUrl || ''} alt={settings?.siteName || ''} className="h-10 w-auto flex-shrink-0" />
             <span className="truncate text-xl font-bold tracking-wider ml-3">{settings?.siteName || ''}</span>
           </Link>
           <nav>

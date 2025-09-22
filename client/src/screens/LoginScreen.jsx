@@ -5,6 +5,7 @@ import { useLoginMutation } from '../slices/usersApiSlice';
 import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import Meta from '../components/Meta';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -59,6 +60,8 @@ const LoginScreen = () => {
   const emailBorderStyle = isEmailValid ? 'border-gray-300' : 'border-red-500';
 
   return (
+    <>
+      <Meta title="Lectern | Sign in" description="Sign in to your Lectern account" />
     <div className="flex justify-center">
       <form className="p-8 mt-10 bg-white rounded shadow-md w-96" onSubmit={submitHandler}>
         <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign In</h1>
@@ -88,6 +91,7 @@ const LoginScreen = () => {
         </div>
       </form>
     </div>
+    </>
   );
 };
 export default LoginScreen;

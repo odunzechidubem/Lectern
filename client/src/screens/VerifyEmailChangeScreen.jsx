@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'; // <-- Import useRef
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
@@ -8,32 +8,41 @@ const VerifyEmailChangeScreen = () => {
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
 
-  // --- THIS IS THE FIX ---
-  // Create a ref to track if the verification has already been attempted.
   const hasVerified = useRef(false);
 
   useEffect(() => {
-    // Only run the verification logic if it has NOT been run before.
-    if (!hasVerified.current) {
-      // Immediately set the ref to true to prevent re-runs.
-      hasVerified.current = true;
-
-      const verifyToken = async () => {
-        try {
-          const res = await fetch(`/api/users/verify-email-change/${token}`);
-          if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.message || 'Verification failed');
-          }
-          setStatus('success');
-        } catch (err) {
-          setStatus('error');
-          setMessage(err.message);
-        }
-      };
-      verifyToken();
+    // This check prevents the effect from running twice in development due to Strict Mode
+    if (hasVerified.current) {
+      return;
     }
-  }, [token]); // The dependency array is correct.
+    hasVerified.current = true;
+
+    const verifyToken = async () => {
+      try {
+        const res = await fetch(`/api/users/verify-email-change/${token}`);
+        const data = await res.text(); // Read as text first to check content
+
+        if (!res.ok) {
+          // Try to parse error as JSON, but have a fallback
+          try {
+            const errorData = JSON.parse(data);
+            throw new Error(errorData.message || 'Verification failed');
+          } catch {
+            throw new Error('An unknown error occurred during verification.');
+          }
+        }
+        
+        // If successful, the response is plain HTML, so we don't need to parse it
+        setStatus('success');
+
+      } catch (err) {
+        setStatus('error');
+        setMessage(err.message);
+      }
+    };
+
+    verifyToken();
+  }, [token]);
 
   return (
     <div className="container mx-auto text-center py-12">

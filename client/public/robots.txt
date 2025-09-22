@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /profile
+Disallow: /admin/dashboard
+Disallow: /lecturer/dashboard
+Disallow: /student/dashboard
+Disallow: /my-grades
+
+Sitemap: https://lecternn.netlify.app/sitemap.xml

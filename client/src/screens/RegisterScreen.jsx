@@ -5,6 +5,7 @@ import { useRegisterMutation, useLogoutMutation } from '../slices/usersApiSlice'
 import { clearCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import Meta from '../components/Meta';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -59,7 +60,7 @@ const RegisterScreen = () => {
   const getValidationItemClass = (isValid) => `flex items-center text-sm ${isValid ? 'text-green-600' : 'text-gray-500'}`;
 
   return (
-    <div className="flex justify-center">
+      <><Meta title="Lectern | Register" description="Create a Lectern account to start learning" /><div className="flex justify-center">
       <form className="p-8 mt-10 bg-white rounded shadow-md w-96" onSubmit={submitHandler}>
         <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign Up</h1>
         <div className="mb-4">
@@ -98,7 +99,7 @@ const RegisterScreen = () => {
         <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300" disabled={isLoading}>{isLoading ? 'Registering...' : 'Register'}</button>
         <p className="mt-4 text-center text-sm text-gray-600">Already have an account?{' '}<Link to="/login" className="text-blue-500 hover:underline">Login</Link></p>
       </form>
-    </div>
+    </div></>
   );
 };
 export default RegisterScreen;
