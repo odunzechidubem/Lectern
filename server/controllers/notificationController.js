@@ -27,7 +27,7 @@ const markOneAsRead = asyncHandler(async (req, res) => {
   } else {
     res.status(404);
     throw new Error('Notification not found or user not authorized');
-  }
+  } 
 });
 
 export { getMyNotifications, markNotificationsAsRead, markOneAsRead };

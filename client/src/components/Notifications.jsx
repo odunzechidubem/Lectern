@@ -5,7 +5,7 @@ import {
   useGetMyNotificationsQuery,
   useMarkNotificationsAsReadMutation,
   useMarkOneAsReadMutation,
-} from '../slices/notificationsApiSlice';
+} from '../slices/notificationsApiSlice'; 
 
 const Notifications = () => {
   const [isOpen, setIsOpen] = useState(false);

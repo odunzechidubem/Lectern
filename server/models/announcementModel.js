@@ -6,7 +6,7 @@ const announcementSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Course',
-    },
+    }, 
     lecturer: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

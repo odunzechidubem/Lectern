@@ -57,7 +57,7 @@ const Header = () => {
         <div className="container mx-auto flex justify-between items-center p-4">
           <Link to={userInfo && userInfo.role === 'superAdmin' ? '/admin/dashboard' : '/'} className="flex items-center min-w-0">
             <img src={settings?.logoUrl || ''} alt={settings?.siteName || ''} className="h-10 w-auto flex-shrink-0" />
-            <span className="truncate text-xl font-bold tracking-wider ml-3">{settings?.siteName || ''}</span>
+            <span className="truncate text-xl font-bold tracking-wider ml-3">{settings?.siteName || ''}</span> 
           </Link>
           <nav>
             <ul className="flex items-center space-x-2 sm:space-x-4">

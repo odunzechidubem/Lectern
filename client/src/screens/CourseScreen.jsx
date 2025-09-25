@@ -55,10 +55,17 @@ const CourseScreen = () => {
 
       <div>
         <Link
-          to="/"
+          to={
+    userInfo?.role === 'student'
+      ? '/student/dashboard'
+      : userInfo?.role === 'lecturer'
+      ? '/'
+      : '/'
+  }
+          state={userInfo?.role === 'lecturer' ? { scrollToCourses: true } : {}}
           className="inline-block bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 mb-6"
         >
-          Go Back
+          Go Back 
         </Link>
 
         {isLoading ? (
