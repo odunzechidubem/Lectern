@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-import Loader from './Loader';
-import { FaEnvelope, FaPhone } from 'react-icons/fa';
+import { useState, useEffect, useRef } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+import Loader from "./Loader";
+import { FaEnvelope, FaPhone } from "react-icons/fa";
 
 // This modern syntax correctly tells Vite how to find the worker file
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
 ).toString();
 
 const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
@@ -27,11 +27,11 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
     };
     // Check size on initial mount and on window resize
     checkSize();
-    window.addEventListener('resize', checkSize);
-    
+    window.addEventListener("resize", checkSize);
+
     // Cleanup function to remove the event listener
     return () => {
-      window.removeEventListener('resize', checkSize);
+      window.removeEventListener("resize", checkSize);
     };
   }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
   // --- END OF FIX ---
@@ -45,12 +45,23 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
 
   return (
     // We attach the ref to this container so we can measure its width
-    <div ref={containerRef} className="pdf-container border rounded-lg overflow-hidden">
+    <div
+      ref={containerRef}
+      className="pdf-container border rounded-lg overflow-hidden"
+    >
       <Document
         file={fileUrl}
         onLoadSuccess={onDocumentLoadSuccess}
-        loading={<div className="flex justify-center items-center p-8"><Loader /></div>}
-        error={<div className="p-4 text-center text-red-500">Failed to load PDF. Please ensure the URL is correct.</div>}
+        loading={
+          <div className="flex justify-center items-center p-8">
+            <Loader />
+          </div>
+        }
+        error={
+          <div className="p-4 text-center text-red-500">
+            Failed to load PDF. Please ensure the URL is correct.
+          </div>
+        }
         // This option disables the default toolbar which includes print/download
         className="flex justify-center"
       >
@@ -62,12 +73,12 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
           renderTextLayer={false}
         />
       </Document>
-      
+
       {numPages && (
         <div className="p-2 bg-gray-100">
           <div className="flex justify-center items-center">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
               className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
             >
@@ -77,21 +88,41 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
               Page {currentPage} of {totalVisiblePages}
             </p>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalVisiblePages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(totalVisiblePages, p + 1))
+              }
               disabled={currentPage >= totalVisiblePages}
               className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
             >
               Next
             </button>
           </div>
-          
+
           {showContactMessage && (
             <div className="mt-4 p-4 bg-blue-100 border-t-4 border-blue-500 rounded-b text-blue-900">
               <h4 className="font-bold">End of Preview</h4>
-              <p className="text-sm mb-2">Please contact the owner of the article for the full version.</p>
+              <p className="text-sm mb-2">
+                Please contact the owner of the article for the full version.
+              </p>
               <div className="text-sm">
-                <p className="flex items-center"><FaEnvelope className="mr-2" /> {contactEmail}</p>
-                <p className="flex items-center"><FaPhone className="mr-2" /> {contactPhone}</p>
+                <p className="flex items-center">
+                  <FaEnvelope className="mr-2" />{" "}
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="hover:text-blue-500"
+                  >
+                    {contactEmail}
+                  </a>
+                </p>
+                <p className="flex items-center">
+                  <FaPhone className="mr-2" />{" "}
+                  <a
+                    href={`tel:${contactPhone}`}
+                    className="hover:text-blue-500"
+                  >
+                    {contactPhone}
+                  </a>
+                </p>
               </div>
             </div>
           )}
