@@ -60,14 +60,26 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Contact Us</h3>
             <ul className="space-y-2 text-gray-400">
               <li className="flex items-center justify-center md:justify-start">
-                <FaEnvelope className="mr-2" /> {settings?.footerContactEmail || 'contact@lms.com'}
-              </li>
+      <FaEnvelope className="mr-2" />
+      <a
+        href={`mailto:${settings?.footerContactEmail || 'contact@lms.com'}`}
+        className="hover:text-white"
+      >
+        {settings?.footerContactEmail || 'contact@lms.com'}
+      </a>
+    </li>
               <li className="flex items-center justify-center md:justify-start">
-                <FaPhone className="mr-2" /> {settings?.footerContactPhone || '(123) 456-7890'}
+                <FaPhone className="mr-2" />
+      <a
+        href={`tel:${settings?.footerContactPhone || '(123) 456-7890'}`}
+        className="hover:text-white"
+      >
+        {settings?.footerContactPhone || '(123) 456-7890'}
+      </a>
               </li>
             </ul>
 
-            {/* ✅ Social Media Icons */}
+            {/* Social Media Icons */}
             <div className="flex justify-center md:justify-start space-x-4 mt-4 text-gray-400">
               <a href={settings?.facebookUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white">
                 <FaFacebook />
