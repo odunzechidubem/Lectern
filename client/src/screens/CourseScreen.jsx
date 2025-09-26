@@ -1,21 +1,21 @@
-import { useParams, Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
+import { useParams, Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import {
   useGetCourseDetailsQuery,
   useEnrollInCourseMutation,
-} from '../slices/coursesApiSlice';
-import { useGetAnnouncementsForCourseQuery } from '../slices/announcementsApiSlice';
-import Loader from '../components/Loader';
-import Message from '../components/Message';
-import Meta from '../components/Meta';
+} from "../slices/coursesApiSlice";
+import { useGetAnnouncementsForCourseQuery } from "../slices/announcementsApiSlice";
+import Loader from "../components/Loader";
+import Message from "../components/Message";
+import Meta from "../components/Meta";
 import {
   FaPlayCircle,
   FaFilePdf,
   FaClipboardList,
   FaBullhorn,
   FaComments,
-} from 'react-icons/fa';
+} from "react-icons/fa";
 
 const CourseScreen = () => {
   const { id: courseId } = useParams();
@@ -32,7 +32,7 @@ const CourseScreen = () => {
 
   const { data: announcements, isLoading: isLoadingAnnouncements } =
     useGetAnnouncementsForCourseQuery(courseId, {
-      skip: !isEnrolled && userInfo?.role !== 'lecturer',
+      skip: !isEnrolled && userInfo?.role !== "lecturer",
     });
 
   const [enrollInCourse, { isLoading: isEnrolling }] =
@@ -41,7 +41,7 @@ const CourseScreen = () => {
   const handleEnroll = async () => {
     try {
       await enrollInCourse(courseId).unwrap();
-      toast.success('Enrolled!');
+      toast.success("Enrolled!");
       refetch();
     } catch (err) {
       toast.error(err?.data?.message || err.error);
@@ -56,16 +56,16 @@ const CourseScreen = () => {
       <div>
         <Link
           to={
-    userInfo?.role === 'student'
-      ? '/student/dashboard'
-      : userInfo?.role === 'lecturer'
-      ? '/'
-      : '/'
-  }
-          state={userInfo?.role === 'lecturer' ? { scrollToCourses: true } : {}}
+            userInfo?.role === "student"
+              ? "/student/dashboard"
+              : userInfo?.role === "lecturer"
+              ? "/"
+              : "/"
+          }
+          state={userInfo?.role === "lecturer" ? { scrollToCourses: true } : {}}
           className="inline-block bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 mb-6"
         >
-          Go Back 
+          Go Back
         </Link>
 
         {isLoading ? (
@@ -82,11 +82,11 @@ const CourseScreen = () => {
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
                 <p className="text-sm text-gray-500 mb-4">
-                  By {course?.lecturer?.name || 'Deleted User'}
+                  By {course?.lecturer?.name || "Deleted User"}
                 </p>
                 <p className="text-gray-700">{course.description}</p>
 
-                {(isEnrolled || userInfo?.role === 'lecturer') && (
+                {(isEnrolled || userInfo?.role === "lecturer") && (
                   <Link
                     to={`/course/${courseId}/chat`}
                     className="mt-4 w-full bg-indigo-500 text-white font-semibold py-2 px-4 rounded hover:bg-indigo-600 flex items-center justify-center"
@@ -96,17 +96,17 @@ const CourseScreen = () => {
                   </Link>
                 )}
 
-                {userInfo && userInfo.role === 'student' && !isEnrolled && (
+                {userInfo && userInfo.role === "student" && !isEnrolled && (
                   <button
                     onClick={handleEnroll}
                     disabled={isEnrolling}
                     className="mt-4 w-full bg-green-500 text-white font-semibold py-2 px-4 rounded hover:bg-green-600"
                   >
-                    {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                    {isEnrolling ? "Enrolling..." : "Enroll Now"}
                   </button>
                 )}
 
-                {userInfo && userInfo.role === 'student' && isEnrolled && (
+                {userInfo && userInfo.role === "student" && isEnrolled && (
                   <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md text-center font-semibold">
                     You are enrolled in this course.
                   </div>
@@ -114,7 +114,7 @@ const CourseScreen = () => {
               </div>
 
               {/* Lectures */}
-              {(isEnrolled || userInfo?.role === 'lecturer') && (
+              {(isEnrolled || userInfo?.role === "lecturer") && (
                 <div className="bg-white p-6 rounded-lg shadow-md">
                   <h2 className="text-2xl font-semibold text-gray-800 mb-4">
                     Lectures
@@ -143,7 +143,9 @@ const CourseScreen = () => {
                               className="flex items-center text-red-500 hover:text-red-700 p-2 rounded-r-lg hover:bg-gray-100"
                             >
                               <FaFilePdf className="mr-2" />
-                              <span className="hidden sm:inline">View Notes</span>
+                              <span className="hidden sm:inline">
+                                View Notes
+                              </span>
                             </a>
                           )}
                         </li>
@@ -158,7 +160,7 @@ const CourseScreen = () => {
 
             {/* Right Section */}
             <div className="space-y-6">
-              {(isEnrolled || userInfo?.role === 'lecturer') && (
+              {(isEnrolled || userInfo?.role === "lecturer") && (
                 <>
                   {/* Announcements */}
                   <div className="bg-white p-6 rounded-lg shadow-md">
@@ -213,7 +215,7 @@ const CourseScreen = () => {
                 </>
               )}
 
-              {!isEnrolled && userInfo?.role === 'student' && (
+              {!isEnrolled && userInfo?.role === "student" && (
                 <div className="bg-white p-6 rounded-lg shadow-md">
                   <Message>
                     Enroll in this course to view content and join the chat.
