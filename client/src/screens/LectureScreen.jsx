@@ -37,7 +37,7 @@ const LectureScreen = () => {
 
           {/* --- Responsive 16:9 Video Player --- */}
           <div className="flex justify-center mb-6">
-            <div className="w-full max-w-4xl aspect-video bg-black rounded-lg shadow-lg overflow-hidden">
+            <div className="w-full max-w-3xl aspect-video bg-black rounded-lg shadow-lg overflow-hidden">
               <video
                 key={lecture.videoUrl}
                 className="w-full h-full"

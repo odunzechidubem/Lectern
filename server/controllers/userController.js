@@ -151,7 +151,7 @@ const authUser = asyncHandler(async (req, res) => {
 
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid credentials');
   }
 
   if (!user.isVerified) {
@@ -256,7 +256,6 @@ const getMySubmissions = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
 
-  // Always respond the same to prevent email enumeration
   if (!user) {
     return res.status(200).json({
       message: 'If an account with that email exists, a password reset link has been sent.',
@@ -308,6 +307,10 @@ const resetPassword = asyncHandler(async (req, res) => {
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
+
+    // invalidate old sessions
+    res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
+
     res.status(200).json({ message: 'Password reset successful. You can now log in.' });
   } catch (error) {
     res.status(500);
@@ -360,7 +363,11 @@ const changeUserPassword = asyncHandler(async (req, res) => {
   if (user && (await user.matchPassword(currentPassword))) {
     user.password = newPassword;
     await user.save();
-    res.json({ message: 'Password changed successfully' });
+
+    // invalidate old session
+    res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
+
+    res.json({ message: 'Password changed successfully. Please log in again.' });
   } else {
     res.status(401);
     throw new Error('Invalid current password');
@@ -460,7 +467,6 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
       throw new Error('User could not be updated.');
     }
 
-    // Safe socket emission
     if (req.io && req.userSocketMap) {
       const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
       if (userSocketId) {
