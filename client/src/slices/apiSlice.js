@@ -20,16 +20,17 @@
 
 
 
+// src/slices/apiSlice.js
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Absolute URL of your LIVE backend server
+// Absolute URL of your LIVE backend
 const BASE_URL = 'https://lectern-usqo.onrender.com';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
-  credentials: 'include', // crucial for sending cookies cross-domain
+  credentials: 'include', // important for sending cookies cross-domain
   prepareHeaders: (headers) => {
-    // Fallback: attach JWT token if stored in localStorage
+    // Fallback: attach JWT token from localStorage
     const token = localStorage.getItem('token');
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
@@ -45,5 +46,5 @@ export const apiSlice = createApi({
     'Submissions', 'Announcements', 'Notifications', 'Settings', 'FooterLink',
     'Article', 'Messages',
   ],
-  endpoints: () => ({}), // keep empty, extend in other slices
+  endpoints: () => ({}),
 });
