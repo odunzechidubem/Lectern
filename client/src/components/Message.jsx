@@ -1,5 +1,6 @@
-// src/components/Message.jsx
-const Message = ({ variant = 'info', children }) => {
+import PropTypes from 'prop-types'; // Corrected: Import PropTypes
+
+const Message = ({ variant, children }) => {
   const getVariantClass = () => {
     switch (variant) {
       case 'success':
@@ -16,6 +17,16 @@ const Message = ({ variant = 'info', children }) => {
       {children}
     </div>
   );
+};
+
+// Corrected: Add prop validation
+Message.propTypes = {
+  variant: PropTypes.oneOf(['info', 'success', 'error']),
+  children: PropTypes.node.isRequired,
+};
+
+Message.defaultProps = {
+  variant: 'info',
 };
 
 export default Message;

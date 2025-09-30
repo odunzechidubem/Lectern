@@ -1,4 +1,3 @@
-// src/components/Loader.jsx
 const Loader = () => {
   return (
     <div className="flex justify-center items-center p-4">

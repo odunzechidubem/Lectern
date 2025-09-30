@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 
-// This custom hook takes a value and a delay time.
-// It will only return the latest value after the user has stopped typing for the specified delay.
+/**
+ * Custom hook that debounces a value.
+ * @param {*} value The value to debounce.
+ * @param {number} delay The debounce delay in milliseconds.
+ * @returns {*} The debounced value after the specified delay.
+ */
 function useDebounce(value, delay) {
   // State to store the debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -12,7 +16,7 @@ function useDebounce(value, delay) {
       setDebouncedValue(value);
     }, delay);
 
-    // This is the cleanup function. It runs every time the `value` changes.
+    // This is the cleanup function. It runs every time the `value` or `delay` changes.
     // It cancels the previous timer, ensuring that only the timer for the most recent value runs.
     return () => {
       clearTimeout(handler);

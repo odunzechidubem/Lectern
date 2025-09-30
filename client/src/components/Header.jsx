@@ -1,3 +1,5 @@
+// src/components/Header.jsx
+
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -8,6 +10,7 @@ import { FaSignInAlt, FaUser } from 'react-icons/fa';
 import Notifications from './Notifications';
 import LanguageSelector from './LanguageSelector';
 import ThemeToggle from './ThemeToggle';
+import { USER_ROLES } from '../constants'; // Corrected: Import constants
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -48,10 +51,16 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsDropdownOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
     };
-    if (isDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isDropdownOpen]);
 
   const logoutHandler = async () => {
@@ -61,8 +70,10 @@ const Header = () => {
       navigate('/login');
     } catch (err) {
       console.error(err);
+      toast.error(err?.data?.message || 'Failed to log out.');
     }
   };
+
   const handleNavigate = (path) => {
     setIsDropdownOpen(false);
     navigate(path);
@@ -78,23 +89,23 @@ const Header = () => {
 
   return (
     <>
-      <header className="bg-gray-800 text-white shadow-lg fixed top-0 left-0 right-0 z-50">
-        <div className="container mx-auto flex justify-between items-center p-2">
+      <header className="fixed top-0 left-0 right-0 z-50 text-white bg-gray-800 shadow-lg">
+        <div className="container flex items-center justify-between p-4 sm:p-2 mx-auto">
           <Link
-            to={userInfo && userInfo.role === 'superAdmin' ? '/admin/dashboard' : '/'}
+            to={userInfo && userInfo.role === USER_ROLES.SUPER_ADMIN ? '/admin/dashboard' : '/'}
             className="flex items-center min-w-0"
           >
             <img
               src={settings?.logoUrl || ''}
-              alt={settings?.siteName || ''}
-              className="h-8 w-auto flex-shrink-0"
+              alt={settings?.siteName || 'Site Logo'}
+              className="flex-shrink-0 w-auto h-12 sm:h-8"
             />
-            <span className="truncate text-lg font-bold tracking-wider ml-2">
+            <span className="ml-3 font-bold tracking-wider truncate text-lg sm:text-l">
               {settings?.siteName || ''}
             </span>
           </Link>
           <nav>
-            <ul className="flex items-center space-x-2 sm:space-x-4">
+            <ul className="flex items-center space-x-3 sm:space-x-4">
               <LanguageSelector />
               <li ref={desktopTranslateRef} className="hidden md:block notranslate"></li>
               <li>
@@ -102,7 +113,7 @@ const Header = () => {
               </li>
               {userInfo ? (
                 <>
-                  {(userInfo.role === 'student' || userInfo.role === 'lecturer') && (
+                  {(userInfo.role === USER_ROLES.STUDENT || userInfo.role === USER_ROLES.LECTURER) && (
                     <li>
                       <Notifications />
                     </li>
@@ -110,7 +121,8 @@ const Header = () => {
                   <li className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="font-semibold flex items-center"
+                      className="flex items-center font-semibold"
+                      aria-label="User menu"
                     >
                       <img
                         src={
@@ -120,47 +132,47 @@ const Header = () => {
                             .join('+')}&background=random&color=fff`
                         }
                         alt="Profile"
-                        className="w-8 h-8 rounded-full object-cover"
+                        className="object-cover w-10 h-10 sm:w-8 sm:h-8 rounded-full"
                       />
-                      <span className="hidden sm:block ml-1 text-sm">{userInfo.name}</span>
-                      <span className="ml-1 text-xs">▾</span>
+                      <span className="hidden ml-2 text-base sm:text-sm sm:block">{userInfo.name}</span>
+                      <span className="ml-1 text-sm">▾</span>
                     </button>
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg py-1 z-20 dark:bg-gray-700 dark:border dark:border-gray-600 text-sm">
+                      <div className="absolute right-0 z-20 w-44 mt-2 py-1 bg-white rounded-md shadow-lg text-sm dark:bg-gray-700 dark:border dark:border-gray-600">
                         <button
                           onClick={() =>
                             handleNavigate(
-                              userInfo.role === 'superAdmin'
+                              userInfo.role === USER_ROLES.SUPER_ADMIN
                                 ? '/admin/dashboard'
-                                : userInfo.role === 'lecturer'
+                                : userInfo.role === USER_ROLES.LECTURER
                                 ? '/lecturer/dashboard'
                                 : '/student/dashboard'
                             )
                           }
-                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                         >
                           Dashboard
                         </button>
                         <button
                           onClick={() => handleNavigate('/profile')}
-                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                         >
                           My Profile
                         </button>
-                        {userInfo.role === 'student' && (
+                        {userInfo.role === USER_ROLES.STUDENT && (
                           <button
                             onClick={() => handleNavigate('/my-grades')}
-                            className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                            className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                           >
                             My Grades
                           </button>
                         )}
-                        {userInfo.role !== 'superAdmin' && (
+                        {userInfo.role !== USER_ROLES.SUPER_ADMIN && (
                           <Link
                             to="/"
                             state={{ scrollToCourses: true }}
                             onClick={() => setIsDropdownOpen(false)}
-                            className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 border-t border-gray-200 dark:border-gray-600 mt-1 pt-1"
+                            className="block w-full px-4 py-2 text-left text-gray-700 border-t border-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 mt-1 pt-1"
                           >
                             All Courses
                           </Link>
@@ -170,7 +182,7 @@ const Header = () => {
                             setIsDropdownOpen(false);
                             logoutHandler();
                           }}
-                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                         >
                           Logout
                         </button>
@@ -182,14 +194,14 @@ const Header = () => {
                 <>
                   {showSignInLink && (
                     <li>
-                      <Link to="/login" className="flex items-center hover:text-gray-300 text-sm">
+                      <Link to="/login" className="flex items-center text-base sm:text-sm hover:text-gray-300">
                         <FaSignInAlt className="mr-1" /> Sign In
                       </Link>
                     </li>
                   )}
                   {showSignUpLink && (
                     <li>
-                      <Link to="/register" className="flex items-center hover:text-gray-300 text-sm">
+                      <Link to="/register" className="flex items-center text-base sm:text-sm hover:text-gray-300">
                         <FaUser className="mr-1" /> Sign Up
                       </Link>
                     </li>
@@ -200,10 +212,13 @@ const Header = () => {
           </nav>
         </div>
       </header>
-
       {/* Mobile translate widget */}
-      <div ref={mobileTranslateRef} className="md:hidden flex justify-center notranslate relative z-40 p-2 mt-[60px]"></div>
+      <div
+        ref={mobileTranslateRef}
+        className="md:hidden flex justify-center notranslate relative z-40 p-3 mt-[70px]"
+      ></div>
     </>
   );
 };
+
 export default Header;

@@ -1,9 +1,12 @@
+// src/components/PdfViewer.jsx
+
 import { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import Loader from "./Loader";
 import { FaEnvelope, FaPhone } from "react-icons/fa";
+import PropTypes from 'prop-types'; // Corrected: Import PropTypes
 
 // This modern syntax correctly tells Vite how to find the worker file
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -28,7 +31,6 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
     // Check size on initial mount and on window resize
     checkSize();
     window.addEventListener("resize", checkSize);
-
     // Cleanup function to remove the event listener
     return () => {
       window.removeEventListener("resize", checkSize);
@@ -38,6 +40,7 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
 
   function onDocumentLoadSuccess({ numPages: nextNumPages }) {
     setNumPages(nextNumPages);
+    setCurrentPage(1); // Reset to first page on new document load
   }
 
   const totalVisiblePages = Math.min(numPages || publicPages, publicPages);
@@ -45,15 +48,12 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
 
   return (
     // We attach the ref to this container so we can measure its width
-    <div
-      ref={containerRef}
-      className="pdf-container border rounded-lg overflow-hidden"
-    >
+    <div ref={containerRef} className="overflow-hidden border rounded-lg pdf-container">
       <Document
         file={fileUrl}
         onLoadSuccess={onDocumentLoadSuccess}
         loading={
-          <div className="flex justify-center items-center p-8">
+          <div className="flex items-center justify-center p-8">
             <Loader />
           </div>
         }
@@ -76,11 +76,12 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
 
       {numPages && (
         <div className="p-2 bg-gray-100">
-          <div className="flex justify-center items-center">
+          <div className="flex items-center justify-center">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
               className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+              aria-label="Previous page" // Corrected: Accessibility
             >
               Prev
             </button>
@@ -88,38 +89,31 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
               Page {currentPage} of {totalVisiblePages}
             </p>
             <button
-              onClick={() =>
-                setCurrentPage((p) => Math.min(totalVisiblePages, p + 1))
-              }
+              onClick={() => setCurrentPage((p) => Math.min(totalVisiblePages, p + 1))}
               disabled={currentPage >= totalVisiblePages}
               className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+              aria-label="Next page" // Corrected: Accessibility
             >
               Next
             </button>
           </div>
 
           {showContactMessage && (
-            <div className="mt-4 p-4 bg-blue-100 border-t-4 border-blue-500 rounded-b text-blue-900">
+            <div className="p-4 mt-4 text-blue-900 bg-blue-100 border-t-4 border-blue-500 rounded-b">
               <h4 className="font-bold">End of Preview</h4>
-              <p className="text-sm mb-2">
+              <p className="mb-2 text-sm">
                 Please contact the owner of the article for the full version.
               </p>
               <div className="text-sm">
                 <p className="flex items-center">
                   <FaEnvelope className="mr-2" />{" "}
-                  <a
-                    href={`mailto:${contactEmail}`}
-                    className="hover:text-blue-500"
-                  >
+                  <a href={`mailto:${contactEmail}`} className="hover:text-blue-500">
                     {contactEmail}
                   </a>
                 </p>
                 <p className="flex items-center">
                   <FaPhone className="mr-2" />{" "}
-                  <a
-                    href={`tel:${contactPhone}`}
-                    className="hover:text-blue-500"
-                  >
+                  <a href={`tel:${contactPhone}`} className="hover:text-blue-500">
                     {contactPhone}
                   </a>
                 </p>
@@ -130,6 +124,14 @@ const PdfViewer = ({ fileUrl, publicPages, contactEmail, contactPhone }) => {
       )}
     </div>
   );
+};
+
+// Corrected: Add comprehensive prop validation
+PdfViewer.propTypes = {
+    fileUrl: PropTypes.string.isRequired,
+    publicPages: PropTypes.number.isRequired,
+    contactEmail: PropTypes.string.isRequired,
+    contactPhone: PropTypes.string.isRequired,
 };
 
 export default PdfViewer;

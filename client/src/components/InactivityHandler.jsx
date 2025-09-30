@@ -14,12 +14,12 @@ const InactivityHandler = () => {
   const [showModal, setShowModal] = useState(false);
   const [countdown, setCountdown] = useState(60);
 
+  // Using refs for timers to avoid issues with closures and re-renders
   const inactivityTimerRef = useRef(null);
-  const countdownTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
-
+  
   const timeoutDuration = 15 * 60 * 1000; // 15 minutes
-  const countdownDuration = 60 * 1000; // 1 minute 
+  const countdownDuration = 60 * 1000; // 1 minute
 
   const logout = useCallback(async () => {
     try {
@@ -29,15 +29,15 @@ const InactivityHandler = () => {
       toast.info('You have been logged out due to inactivity.');
     } catch (err) {
       console.error('Failed to log out:', err);
+      toast.error('Failed to log out automatically. Please try again.'); // Corrected: User feedback
     }
   }, [logoutApiCall, dispatch, navigate]);
 
   const clearAllTimers = useCallback(() => {
     clearTimeout(inactivityTimerRef.current);
-    clearTimeout(countdownTimerRef.current);
     clearInterval(countdownIntervalRef.current);
   }, []);
-  
+
   const handleStayLoggedIn = () => {
     setShowModal(false);
     setCountdown(60);
@@ -45,7 +45,7 @@ const InactivityHandler = () => {
     // The main useEffect will now restart the timers because userInfo is still present
   };
 
-  // --- THIS IS THE FIRST PART OF THE FIX: Main Inactivity Timer ---
+  // --- Main Inactivity Timer ---
   useEffect(() => {
     if (!userInfo) {
       // If there is no user, make sure everything is cleared and do nothing else.
@@ -54,20 +54,17 @@ const InactivityHandler = () => {
       return;
     }
 
-    let inactivityTimer;
-
     const handleActivity = () => {
-      // --- THIS IS THE CRITICAL LOGIC ---
       // ONLY reset the timer if the modal is NOT currently showing.
       // This prevents the modal from disappearing on mouse movement.
       if (!showModal) {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = setTimeout(() => {
           setShowModal(true);
         }, timeoutDuration);
       }
     };
-
+    
     const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
     
     // Add listeners for all activity events.
@@ -78,16 +75,16 @@ const InactivityHandler = () => {
     // Start the initial timer.
     handleActivity();
 
-    // Cleanup function to remove listeners when the user logs out.
+    // Cleanup function to remove listeners.
     return () => {
-      clearTimeout(inactivityTimer);
+      clearTimeout(inactivityTimerRef.current);
       activityEvents.forEach((event) => {
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [userInfo, showModal, timeoutDuration]); // `showModal` is now a dependency
+  }, [userInfo, showModal, timeoutDuration, clearAllTimers]);
 
-  // --- THIS IS THE SECOND PART OF THE FIX: The Modal Countdown Timer ---
+  // --- The Modal Countdown Timer ---
   useEffect(() => {
     if (!showModal) {
       return;
@@ -95,35 +92,35 @@ const InactivityHandler = () => {
 
     // Start the 1-minute timer to automatically log out.
     const logoutTimer = setTimeout(logout, countdownDuration);
-    
+
     // Start the interval to update the countdown display every second.
-    const countdownInterval = setInterval(() => {
+    countdownIntervalRef.current = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     // Cleanup function to clear these specific timers if the modal is closed.
     return () => {
       clearTimeout(logoutTimer);
-      clearInterval(countdownInterval);
+      clearInterval(countdownIntervalRef.current);
     };
   }, [showModal, logout, countdownDuration]);
-  
+
   if (!showModal) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl text-center w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Are you still there?</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-sm p-8 text-center bg-white rounded-lg shadow-xl">
+        <h2 className="mb-4 text-2xl font-bold text-gray-800">Are you still there?</h2>
         <p className="mb-6 text-gray-600">
           You will be logged out in{' '}
-          <span className="font-bold text-lg">{countdown}</span> seconds due to
+          <span className="text-lg font-bold">{countdown}</span> seconds due to
           inactivity.
         </p>
         <button
           onClick={handleStayLoggedIn}
-          className="bg-blue-500 text-white font-semibold py-2 px-6 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="px-6 py-2 font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Stay Logged In
         </button>

@@ -14,8 +14,8 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={handleThemeToggle}
-      className="text-white hover:text-gray-300 text-xl"
-      aria-label="Toggle theme"
+      className="text-xl text-white hover:text-gray-300"
+      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} // Corrected: More descriptive aria-label
     >
       {theme === 'light' ? <FaMoon /> : <FaSun />}
     </button>

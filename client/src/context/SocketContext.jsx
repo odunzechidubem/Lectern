@@ -14,11 +14,16 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (userInfo) {
-      // Connect to the LIVE backend URL
-      const newSocket = io('https://lectern-usqo.onrender.com', {
+      // Corrected: Use environment variable for the backend URL.
+      // Add VITE_SOCKET_URL to your .env file (e.g., VITE_SOCKET_URL=https://lectern-usqo.onrender.com)
+      const socketUrl = import.meta.env.VITE_SOCKET_URL;
+      
+      const newSocket = io(socketUrl, {
         withCredentials: true,
+        query: { userId: userInfo._id }, // send userId to server for authentication
       });
       setSocket(newSocket);
+
       return () => {
         newSocket.disconnect();
       };
@@ -28,6 +33,7 @@ export const SocketProvider = ({ children }) => {
         setSocket(null);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo]);
 
   return (
