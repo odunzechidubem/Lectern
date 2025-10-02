@@ -1,4 +1,5 @@
 import { apiSlice } from './apiSlice';
+
 const COURSES_URL = '/api/courses';
 
 export const coursesApiSlice = apiSlice.injectEndpoints({

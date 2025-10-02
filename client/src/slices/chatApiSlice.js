@@ -1,4 +1,5 @@
 import { apiSlice } from './apiSlice';
+
 const CHAT_URL = '/api/chat';
 
 export const chatApiSlice = apiSlice.injectEndpoints({

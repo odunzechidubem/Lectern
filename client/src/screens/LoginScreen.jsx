@@ -6,6 +6,7 @@ import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Meta from '../components/Meta';
+import { USER_ROLES } from '../constants';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -19,12 +20,11 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (userInfo) {
-      // Simple, robust redirection logic
-      if (userInfo.role === 'superAdmin') {
+      if (userInfo.role === USER_ROLES.SUPER_ADMIN) {
         navigate('/admin/dashboard');
-      } else if (userInfo.role === 'lecturer') {
+      } else if (userInfo.role === USER_ROLES.LECTURER) {
         navigate('/lecturer/dashboard');
-      } else { // 'student' and any other case
+      } else {
         navigate('/student/dashboard');
       }
     }
@@ -49,49 +49,70 @@ const LoginScreen = () => {
     try {
       const res = await login({ email, password }).unwrap();
       dispatch(setCredentials({ ...res }));
-      // The useEffect hook will handle navigation
     } catch (err) {
       toast.error(err?.data?.message || err.error);
-      setEmail('');
-      setPassword('');
     }
   };
-  
+
   const emailBorderStyle = isEmailValid ? 'border-gray-300' : 'border-red-500';
 
   return (
     <>
       <Meta title="Lectern | Sign in" description="Sign in to your Lectern account" />
-    <div className="flex justify-center">
-      <form className="p-8 mt-10 bg-white rounded shadow-md w-96" onSubmit={submitHandler}>
-        <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign In</h1>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="email">Email Address</label> 
-          <input type="email" id="email" className={`w-full px-3 py-2 border rounded ${emailBorderStyle}`} value={email} onChange={handleEmailChange} />
-          {!isEmailValid && <p className="text-red-500 text-xs mt-1">Please enter a valid email format.</p>}
-        </div>
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-2" htmlFor="password">Password</label>
-          <div className="relative">
-            <input type={showPassword ? 'text' : 'password'} id="password" className="w-full px-3 py-2 border rounded" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-600">
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </button>
+      <div className="flex justify-center">
+        <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
+          <h1 className="mb-6 text-2xl font-bold text-gray-700">Sign In</h1>
+          <div className="mb-4">
+            <label className="block mb-2 text-gray-700" htmlFor="email">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              className={`w-full px-3 py-2 border rounded ${emailBorderStyle}`}
+              value={email}
+              onChange={handleEmailChange}
+              required
+            />
+            {!isEmailValid && <p className="mt-1 text-xs text-red-500">Please enter a valid email format.</p>}
           </div>
-        </div>
-        <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300" disabled={isLoading}>
-          {isLoading ? 'Signing In...' : 'Sign In'}
-        </button>
-        <div className="flex justify-between items-center mt-4 text-sm">
-          <Link to="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</Link>
-          <p className="text-gray-600">
-            New User?{' '} 
-            <Link to="/register" className="text-blue-500 hover:underline">Register</Link> 
-          </p>
-        </div>
-      </form>
-    </div>
+          <div className="mb-6">
+            <label className="block mb-2 text-gray-700" htmlFor="password">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                className="w-full px-3 py-2 border rounded"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"} 
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing In...' : 'Sign In'}
+          </button>
+          <div className="flex items-center justify-between mt-4 text-sm">
+            <Link to="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</Link>
+            <p className="text-gray-600">
+              New User?{' '}
+              <Link to="/register" className="text-blue-500 hover:underline">Register</Link>
+            </p>
+          </div>
+        </form>
+      </div>
     </>
   );
 };
+
 export default LoginScreen;

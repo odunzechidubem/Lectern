@@ -1,4 +1,5 @@
 import { apiSlice } from './apiSlice';
+
 const ASSIGNMENTS_URL = '/api/assignments';
 
 export const assignmentsApiSlice = apiSlice.injectEndpoints({
@@ -9,6 +10,7 @@ export const assignmentsApiSlice = apiSlice.injectEndpoints({
     }),
     deleteAssignment: builder.mutation({
       query: (assignmentId) => ({ url: `${ASSIGNMENTS_URL}/${assignmentId}`, method: 'DELETE' }),
+      invalidatesTags: ['Course'], 
     }),
     getAssignmentDetails: builder.query({
       query: (assignmentId) => ({ url: `${ASSIGNMENTS_URL}/${assignmentId}` }),
@@ -18,8 +20,7 @@ export const assignmentsApiSlice = apiSlice.injectEndpoints({
       query: (data) => ({ url: `${ASSIGNMENTS_URL}/${data.assignmentId}/submit`, method: 'POST', body: data }),
       invalidatesTags: (result, error, arg) => [{ type: 'Assignment', id: arg.assignmentId }],
     }),
-    
-    // --- NEW QUERY ---
+
     getSubmissions: builder.query({
       query: (assignmentId) => ({
         url: `${ASSIGNMENTS_URL}/${assignmentId}/submissions`,
@@ -34,5 +35,5 @@ export const {
   useDeleteAssignmentMutation,
   useGetAssignmentDetailsQuery,
   useSubmitAssignmentMutation,
-  useGetSubmissionsQuery, // <-- EXPORT
+  useGetSubmissionsQuery,
 } = assignmentsApiSlice;

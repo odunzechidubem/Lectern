@@ -1,4 +1,7 @@
+// /src/slices/announcementsApiSlice.js
+
 import { apiSlice } from './apiSlice';
+
 const ANNOUNCEMENTS_URL = '/api/announcements';
 
 export const announcementsApiSlice = apiSlice.injectEndpoints({
@@ -24,6 +27,9 @@ export const announcementsApiSlice = apiSlice.injectEndpoints({
         url: `${ANNOUNCEMENTS_URL}/${announcementId}`,
         method: 'DELETE',
       }),
+      // We don't know the courseId here, so we invalidate the parent tag.
+      // A more advanced implementation might pass the courseId along.
+      invalidatesTags: ['Announcements'],
     }),
   }),
 });

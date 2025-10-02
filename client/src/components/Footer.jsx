@@ -1,4 +1,4 @@
-import { FaBook, FaEnvelope, FaPhone, FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
+import { FaEnvelope, FaPhone, FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useGetSettingsQuery } from '../slices/settingsApiSlice';
@@ -17,7 +17,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-3 md:text-left">
           {/* Logo & About */}
           <div>
-            <Link to={userInfo && userInfo.role === USER_ROLES.SUPER_ADMIN ? '/admin/dashboard' : '/'}> {/* Corrected: Use constant */}
+            <Link to={userInfo && userInfo.role === USER_ROLES.SUPER_ADMIN ? '/admin/dashboard' : '/'}>
               <h3 className="flex items-center justify-center mb-4 text-lg font-bold md:justify-start">
                 <img
                   src={settings?.logoUrl || '/logo.png'}
@@ -37,6 +37,7 @@ const Footer = () => {
             <h3 className="mb-4 text-lg font-bold">Quick Links</h3>
             <ul className="space-y-2">
               <li>
+                {/* About Us stays in same tab */}
                 <Link to="/about" className="text-gray-400 hover:text-white">
                   About Us
                 </Link>
@@ -46,9 +47,15 @@ const Footer = () => {
               ) : (
                 links?.map((link) => (
                   <li key={link._id}>
-                    <Link to={link.url} className="text-gray-400 hover:text-white">
+                    {/* Other links open in new tab */}
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-white"
+                    >
                       {link.title}
-                    </Link>
+                    </a>
                   </li>
                 ))
               )}
@@ -80,16 +87,16 @@ const Footer = () => {
             </ul>
             {/* Social Media Icons */}
             <div className="flex justify-center mt-4 space-x-4 text-gray-400 md:justify-start">
-              <a href={settings?.facebookUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Facebook"> {/* Corrected */}
+              <a href={settings?.facebookUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Facebook">
                 <FaFacebook />
               </a>
-              <a href={settings?.twitterUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Twitter"> {/* Corrected */}
+              <a href={settings?.twitterUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Twitter">
                 <FaTwitter />
               </a>
-              <a href={settings?.linkedinUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="LinkedIn"> {/* Corrected */}
+              <a href={settings?.linkedinUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="LinkedIn">
                 <FaLinkedin />
               </a>
-              <a href={settings?.instagramUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Instagram"> {/* Corrected */}
+              <a href={settings?.instagramUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Instagram">
                 <FaInstagram />
               </a>
             </div>

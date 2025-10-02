@@ -1,4 +1,5 @@
 import { apiSlice } from './apiSlice';
+
 const SETTINGS_URL = '/api/settings';
 
 export const settingsApiSlice = apiSlice.injectEndpoints({
@@ -21,6 +22,6 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
-  useGetSettingsQuery,
-  useUpdateSettingsMutation, // This line must be here
-} = settingsApiSlice; 
+  useGetSettingsQuery, 
+  useUpdateSettingsMutation,
+} = settingsApiSlice;
