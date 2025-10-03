@@ -6,4 +6,4 @@ Disallow: /lecturer/dashboard
 Disallow: /student/dashboard
 Disallow: /my-grades
 
-Sitemap: https://lecternn.netlify.app/sitemap.xml
+Sitemap: https://lectern.site/sitemap.xml
