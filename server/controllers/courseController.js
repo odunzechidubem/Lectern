@@ -6,7 +6,7 @@ import Notification from '../models/notificationModel.js';
 
 // @desc    Get all courses (with search functionality restored)
 const getCourses = asyncHandler(async (req, res) => {
-  // --- THIS IS THE RESTORED SEARCH LOGIC ---
+
   const keyword = req.query.keyword
     ? {
         title: {

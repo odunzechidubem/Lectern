@@ -6,10 +6,9 @@ const storage = multer.memoryStorage();
 
 // Middleware to check file type
 function checkFileType(file, cb) {
-  // --- THIS IS THE FIX ---
   // Add common image file extensions to the list of allowed types
   const filetypes = /jpeg|jpg|png|gif|mp4|mov|avi|pdf/;
-  
+
   // Check the extension name
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   // Check the mime type
@@ -19,7 +18,7 @@ function checkFileType(file, cb) {
     return cb(null, true);
   } else {
     // Update the error message to include images
-    cb(new Error('Error: Only images (jpeg, png), videos (mp4, mov), and PDFs are allowed!'));
+    cb(new Error('Error: Only images (jpeg, png, gif), videos (mp4, mov, avi), and PDFs are allowed!'));
   }
 }
 

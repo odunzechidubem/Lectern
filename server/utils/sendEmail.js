@@ -1,28 +1,30 @@
-// src/utils/sendEmail.js
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const sendEmail = async (options) => {
-  // 1. Create a transporter using Mailchimp (Mandrill) SMTP credentials
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,       // smtp.mandrillapp.com
-    port: process.env.EMAIL_PORT,       // 587 or 465
-    secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
+    host: process.env.EMAIL_HOST,       
+    port: process.env.EMAIL_PORT,        
+    secure: false,                      
     auth: {
-      user: process.env.EMAIL_USER,     // Mailchimp username (or "anystring" if API key is enough)
-      pass: process.env.EMAIL_PASS,     // Mandrill API key
+      user: process.env.EMAIL_USER,      
+      pass: process.env.EMAIL_PASS,      
     },
   });
 
-  // 2. Define the email options
   const mailOptions = {
-    from: `"${options.siteName || 'Lectern'}" <${process.env.EMAIL_FROM}>`, 
+    from: `"${options.siteName || "Lectern"}" <${process.env.EMAIL_FROM}>`,
     to: options.email,
     subject: options.subject,
     html: options.html,
   };
 
-  // 3. Send the email
-  await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent:", info.messageId);
+  } catch (error) {
+    console.error("ERROR SENDING EMAIL:", error);
+    throw new Error("Email could not be sent.");
+  }
 };
 
 export default sendEmail;

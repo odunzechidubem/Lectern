@@ -2,16 +2,17 @@ import asyncHandler from 'express-async-handler';
 import Submission from '../models/submissionModel.js';
 import Course from '../models/courseModel.js';
 
-// @desc    Grade a student's submission
-// @route   PUT /api/submissions/:id/grade
-// @access  Private/Lecturer
+// @desc Grade a student's submission
+// @route PUT /api/submissions/:id/grade
+// @access Private/Lecturer
 const gradeSubmission = asyncHandler(async (req, res) => {
   const { grade, feedback } = req.body;
-  
-  // Ensure grade is a valid number
-  if (grade === undefined || grade === null || isNaN(parseInt(grade))) {
+
+  // Corrected: More robust grade validation
+  const gradeAsNumber = Number(grade);
+  if (isNaN(gradeAsNumber) || gradeAsNumber < 0 || gradeAsNumber > 100) {
     res.status(400);
-    throw new Error('Grade is a required numerical field');
+    throw new Error('Grade must be a number between 0 and 100.');
   }
 
   const submission = await Submission.findById(req.params.id);
@@ -28,11 +29,11 @@ const gradeSubmission = asyncHandler(async (req, res) => {
     throw new Error('User not authorized to grade submissions for this course');
   }
 
-  submission.grade = Number(grade);
-  submission.feedback = feedback || ''; // Set feedback, default to empty string
-  
+  submission.grade = gradeAsNumber;
+  submission.feedback = feedback || ''; 
+
   const updatedSubmission = await submission.save();
-  
+
   res.status(200).json(updatedSubmission);
 });
 

@@ -8,10 +8,14 @@ const submissionSchema = mongoose.Schema(
     fileUrl: { type: String, required: true },
     submittedAt: { type: Date, default: Date.now },
     grade: { type: Number, min: 0, max: 100 },
-    feedback: { type: String },
+    feedback: { type: String, trim: true },
   },
   { timestamps: true }
 );
 
+// A unique compound index to prevent duplicate submissions and speed up lookups.
+submissionSchema.index({ assignment: 1, student: 1 }, { unique: true });
+
 const Submission = mongoose.model('Submission', submissionSchema);
+
 export default Submission;

@@ -1,14 +1,16 @@
+// /server/controllers/notificationController.js
+
 import asyncHandler from 'express-async-handler';
 import Notification from '../models/notificationModel.js';
 
-// @desc    Get all unread notifications for the logged-in user
+// @desc Get all unread notifications for the logged-in user
 const getMyNotifications = asyncHandler(async (req, res) => {
   const notifications = await Notification.find({ user: req.user._id, isRead: false })
     .sort({ createdAt: -1 });
   res.status(200).json(notifications);
 });
 
-// @desc    Mark all of a user's notifications as read
+// @desc Mark all of a user's notifications as read
 const markNotificationsAsRead = asyncHandler(async (req, res) => {
   await Notification.updateMany(
     { user: req.user._id, isRead: false },
@@ -17,9 +19,11 @@ const markNotificationsAsRead = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Notifications marked as read' });
 });
 
-// @desc    Mark a single notification as read - THIS FUNCTION WAS MISSING
+// @desc Mark a single notification as read - THIS FUNCTION WAS MISSING
 const markOneAsRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findById(req.params.id);
+
+  // Corrected: Ensure the notification exists AND belongs to the user making the request
   if (notification && notification.user.toString() === req.user._id.toString()) {
     notification.isRead = true;
     await notification.save();
@@ -27,7 +31,7 @@ const markOneAsRead = asyncHandler(async (req, res) => {
   } else {
     res.status(404);
     throw new Error('Notification not found or user not authorized');
-  } 
+  }
 });
 
 export { getMyNotifications, markNotificationsAsRead, markOneAsRead };

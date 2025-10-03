@@ -1,3 +1,5 @@
+// /server/controllers/userController.js
+
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
 import Course from '../models/courseModel.js';
@@ -12,6 +14,15 @@ import crypto from 'crypto';
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
+  if (!name || !name.trim() || !email || !password || !role) {
+    res.status(400);
+    throw new Error('Please fill out all required fields.');
+  }
+  if (password.length < 8) {
+      res.status(400);
+      throw new Error('Password must be at least 8 characters long.');
+  }
+
   const settings = await Settings.findOne({ singleton: 'system_settings' });
   if (settings) {
     if (role === 'student' && !settings.isStudentRegistrationEnabled) {
@@ -24,19 +35,19 @@ const registerUser = asyncHandler(async (req, res) => {
     }
   }
 
-  const userExists = await User.findOne({ email });
+  const userExists = await User.findOne({ email: email.toLowerCase() });
   if (userExists) {
     res.status(400);
     throw new Error('User already exists');
   }
 
-  const user = await User.create({ name, email, password, role });
+  const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password, role });
 
   if (user) {
     const verificationToken = user.createVerificationToken();
     await user.save({ validateBeforeSave: false });
 
-    const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/verify/${verificationToken}`;
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
     try {
@@ -50,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
         message: 'Registration successful. Please check your email to verify your account.',
       });
     } catch (err) {
-      await User.findByIdAndDelete(user._id);
+      await User.findByIdAndDelete(user._id); // Rollback user creation
       res.status(500);
       throw new Error('Email could not be sent. Please try again.');
     }
@@ -63,7 +74,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // ================== LOGIN ==================
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: email.toLowerCase() });
 
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
@@ -135,7 +146,6 @@ const logoutUser = (req, res) => {
 // ================== COURSES ==================
 const getEnrolledCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({ students: req.user._id });
-
   const populatedCourses = await Promise.all(
     courses.map(async (course) => {
       const lecturer = await User.findById(course.lecturer).select('name');
@@ -144,14 +154,12 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
       return courseObject;
     })
   );
-
   res.status(200).json(populatedCourses);
 });
 
 // ================== SUBMISSIONS ==================
 const getMySubmissions = asyncHandler(async (req, res) => {
   const submissions = await Submission.find({ student: req.user._id }).sort({ createdAt: -1 });
-
   const populatedSubmissions = await Promise.all(
     submissions.map(async (submission) => {
       const [course, assignment] = await Promise.all([
@@ -164,16 +172,14 @@ const getMySubmissions = asyncHandler(async (req, res) => {
       return submissionObject;
     })
   );
-
   res.status(200).json(populatedSubmissions);
 });
 
 // ================== PASSWORD RESET ==================
 const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
-
-  // Always respond the same to prevent email enumeration
   if (!user) {
+    // Always respond the same to prevent email enumeration
     return res.status(200).json({
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
@@ -182,7 +188,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   const message = `<p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in 10 minutes.</p>`;
 
   try {
@@ -250,11 +256,9 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
-
   if (user) {
     user.name = req.body.name || user.name;
     user.profileImage = req.body.profileImage || user.profileImage;
-
     const updatedUser = await user.save();
     res.json({
       _id: updatedUser._id,
@@ -271,8 +275,11 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8) {
+      res.status(400);
+      throw new Error('New password must be at least 8 characters long.');
+  }
   const user = await User.findById(req.user._id);
-
   if (user && (await user.matchPassword(currentPassword))) {
     user.password = newPassword;
     await user.save();
@@ -302,14 +309,12 @@ const requestEmailChange = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('New email is required');
   }
-
-  const emailExists = await User.findOne({ email: newEmail });
+  const emailExists = await User.findOne({ email: newEmail.toLowerCase() });
   if (emailExists) {
     return res.status(200).json({
       message: 'If the email is available, you will receive a verification link.',
     });
   }
-
   const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
@@ -317,10 +322,10 @@ const requestEmailChange = asyncHandler(async (req, res) => {
   }
 
   const changeToken = user.createEmailChangeToken();
-  user.newEmail = newEmail;
+  user.newEmail = newEmail.toLowerCase();
   await user.save({ validateBeforeSave: false });
 
-  const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email-change/${changeToken}`;
+  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email-change/${changeToken}`;
   const message = `<p>You requested to change your account's email address. Please confirm by clicking below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
   try {
@@ -329,7 +334,6 @@ const requestEmailChange = asyncHandler(async (req, res) => {
       subject: 'Confirm Your New Email Address',
       html: message,
     });
-
     res.status(200).json({
       message: 'If the email is available, you will receive a verification link.',
     });
@@ -344,54 +348,55 @@ const requestEmailChange = asyncHandler(async (req, res) => {
 });
 
 const verifyEmailChange = asyncHandler(async (req, res) => {
-  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const user = await User.findOne({
+        emailChangeToken: hashedToken,
+        emailChangeTokenExpires: { $gt: Date.now() },
+    });
 
-  const user = await User.findOne({
-    emailChangeToken: hashedToken,
-    emailChangeTokenExpires: { $gt: Date.now() },
-  });
-
-  if (!user || !user.newEmail) {
-    res.status(400);
-    throw new Error('Token is invalid, expired, or the process was interrupted.');
-  }
-
-  const emailAlreadyExists = await User.findOne({ email: user.newEmail });
-  if (emailAlreadyExists) {
-    res.status(400);
-    throw new Error('This email address has been taken by another account since your request.');
-  }
-
-  try {
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      {
-        $set: { email: user.newEmail },
-        $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 },
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      throw new Error('User could not be updated.');
+    if (!user || !user.newEmail) {
+        res.status(400);
+        throw new Error('Token is invalid, expired, or the process was interrupted.');
     }
 
-    // Safe socket emission
-    if (req.io && req.userSocketMap) {
-      const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
-      if (userSocketId) {
-        req.io.to(userSocketId).emit('force-logout', {
-          message: 'Your email has been changed. Please log in with your new email address.',
-        });
-      }
+    const emailAlreadyExists = await User.findOne({ email: user.newEmail });
+    if (emailAlreadyExists) {
+        user.newEmail = undefined;
+        user.emailChangeToken = undefined;
+        user.emailChangeTokenExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+        res.status(400);
+        throw new Error('This email address has been taken by another account since your request.');
     }
+    
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            user._id,
+            {
+                $set: { email: user.newEmail },
+                $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 },
+            },
+            { new: true }
+        );
 
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?emailChanged=true`);
-  } catch (error) {
-    console.error('Error saving email change:', error);
-    res.status(500);
-    throw new Error('An error occurred while updating your email. Please try again.');
-  }
+        if (!updatedUser) {
+            throw new Error('User could not be updated.');
+        }
+
+        if (req.io && req.userSocketMap) {
+            const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
+            if (userSocketId) {
+                req.io.to(userSocketId).emit('force-logout', {
+                    message: 'Your email has been changed. Please log in with your new email address.',
+                });
+            }
+        }
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?emailChanged=true`);
+    } catch (error) {
+        console.error('Error saving email change:', error);
+        res.status(500);
+        throw new Error('An error occurred while updating your email. Please try again.');
+    }
 });
 
 // ================== EXPORTS ==================
