@@ -8,8 +8,7 @@ import Notification from '../models/notificationModel.js';
 
 const createAssignment = asyncHandler(async (req, res) => {
   const { title, description, dueDate, courseId, instructionFileUrl } = req.body;
-  
-  // Corrected: Add validation for required fields
+
   if (!title || !dueDate || !courseId) {
     res.status(400);
     throw new Error('Title, due date, and course ID are required.');
@@ -25,21 +24,22 @@ const createAssignment = asyncHandler(async (req, res) => {
   course.assignments.push(assignment._id);
   await course.save();
 
-  // Corrected: Wrap notification logic in try/catch
   try {
     const message = `A new assignment "${title}" was added to the course "${course.title}".`;
     const link = `/course/${course._id}/assignment/${assignment._id}`;
-    const notifications = course.students.map(studentId => ({ user: studentId, message, link }));
+    const notificationDocs = course.students.map(studentId => ({ user: studentId, message, link }));
 
-    if (notifications.length > 0) {
-      await Notification.insertMany(notifications);
+    if (notificationDocs.length > 0) {
+      const createdNotifications = await Notification.insertMany(notificationDocs);
       const { io, userSocketMap } = req;
-      course.students.forEach(studentId => {
-        const socketId = userSocketMap.get(studentId.toString());
+      
+      createdNotifications.forEach(notification => {
+        const socketId = userSocketMap.get(notification.user.toString());
         if (socketId) {
-          io.to(socketId).emit('newNotification');
+          io.to(socketId).emit('new_notification_data', notification);
         }
       });
+      console.log(`Created and Pushed ${createdNotifications.length} assignment notifications.`);
     }
   } catch (error) {
     console.error('Failed to create assignment notifications:', error);
@@ -52,13 +52,11 @@ const deleteAssignment = asyncHandler(async (req, res) => {
   const assignment = await Assignment.findById(req.params.id);
   if (assignment) {
     const course = await Course.findById(assignment.course);
-    // Corrected: Add course existence check
     if (!course || course.lecturer.toString() !== req.user._id.toString()) {
       res.status(403);
       throw new Error('User not authorized');
     }
 
-    // Pull assignment from course's array
     course.assignments.pull(assignment._id);
     await course.save();
 

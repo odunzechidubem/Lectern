@@ -1,25 +1,17 @@
+// /server/controllers/courseController.js
+
 import asyncHandler from 'express-async-handler';
 import Course from '../models/courseModel.js';
 import User from '../models/userModel.js';
 import Assignment from '../models/assignmentModel.js';
 import Notification from '../models/notificationModel.js';
 
-// @desc    Get all courses (with search functionality restored)
 const getCourses = asyncHandler(async (req, res) => {
-
   const keyword = req.query.keyword
-    ? {
-        title: {
-          $regex: req.query.keyword,
-          $options: 'i', // Case-insensitive search
-        },
-      }
-    : {}; // If no keyword, the filter is empty and finds all courses
-
-  // The keyword filter is now correctly applied to the find() method
+    ? { title: { $regex: req.query.keyword, $options: 'i' } }
+    : {};
   const courses = await Course.find({ ...keyword });
-  
-  // The robust manual population logic remains
+
   const populatedCourses = await Promise.all(
     courses.map(async (course) => {
       const lecturer = await User.findById(course.lecturer).select('name email');
@@ -31,7 +23,6 @@ const getCourses = asyncHandler(async (req, res) => {
   res.json(populatedCourses);
 });
 
-// @desc    Get a single course by ID
 const getCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -51,16 +42,14 @@ const getCourseById = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get a lecturer's own courses
 const getMyCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({ lecturer: req.user._id });
   res.json(courses);
 });
 
-// @desc    Create a new course
 const createCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
-  if (!title || !description) {
+  if (!title || !title.trim() || !description || !description.trim()) {
     res.status(400);
     throw new Error('Title and description are required');
   }
@@ -69,7 +58,6 @@ const createCourse = asyncHandler(async (req, res) => {
   res.status(201).json(createdCourse);
 });
 
-// @desc    Update a course
 const updateCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   const course = await Course.findById(req.params.id);
@@ -88,7 +76,6 @@ const updateCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Delete a course
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -104,7 +91,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Add a lecture to a course
 const addLectureToCourse = asyncHandler(async (req, res) => {
   const { title, videoUrl, notesUrl } = req.body;
   const course = await Course.findById(req.params.id);
@@ -115,19 +101,23 @@ const addLectureToCourse = asyncHandler(async (req, res) => {
     }
     course.lectures.push({ title, videoUrl, notesUrl });
     await course.save();
+    
     try {
       const message = `A new lecture "${title}" was added to the course "${course.title}".`;
       const link = `/course/${course._id}`;
-      const notifications = course.students.map(studentId => ({ user: studentId, message, link }));
-      if (notifications.length > 0) {
-        await Notification.insertMany(notifications);
+      const notificationDocs = course.students.map(studentId => ({ user: studentId, message, link }));
+      
+      if (notificationDocs.length > 0) {
+        const createdNotifications = await Notification.insertMany(notificationDocs);
         const { io, userSocketMap } = req;
-        course.students.forEach(studentId => {
-          const socketId = userSocketMap.get(studentId.toString());
+        
+        createdNotifications.forEach(notification => {
+          const socketId = userSocketMap.get(notification.user.toString());
           if (socketId) {
-            io.to(socketId).emit('newNotification');
+            io.to(socketId).emit('new_notification_data', notification);
           }
         });
+        console.log(`Created and Pushed ${createdNotifications.length} new lecture notifications.`);
       }
     } catch (error) {
       console.error('Failed to create notifications for new lecture:', error);
@@ -139,7 +129,6 @@ const addLectureToCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Delete a lecture from a course
 const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.courseId);
   if (course) {
@@ -156,7 +145,6 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Enroll a student in a course
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {

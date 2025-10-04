@@ -1,3 +1,5 @@
+// /server/socket.js
+
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from './models/userModel.js';
@@ -11,9 +13,9 @@ export const initSocketServer = (server) => {
   const io = new Server(server, {
     cors: {
       origin: [
-        'http://localhost:5173',
+        process.env.DEV_FRONTEND_URL,
         process.env.FRONTEND_URL
-      ],
+      ].filter(Boolean),
       credentials: true,
     },
   });
@@ -24,10 +26,11 @@ export const initSocketServer = (server) => {
       if (!cookie) return next(new Error('Authentication error: No cookie provided.'));
       const token = cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
       if (!token) return next(new Error('Authentication error: Token not found in cookie.'));
-
+      
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = await User.findById(decoded.userId).select('-password');
       if (!socket.user) return next(new Error('Authentication error: User not found.'));
+      
       next();
     } catch (error) {
       next(new Error('Authentication error: Invalid token.'));
@@ -41,10 +44,10 @@ export const initSocketServer = (server) => {
     socket.on('joinCourse', async (courseId) => {
       const course = await Course.findById(courseId);
       if (!course) return;
-
+      
       const isLecturer = course.lecturer.toString() === socket.user._id.toString();
       const isEnrolled = course.students.some(s => s.toString() === socket.user._id.toString());
-
+      
       if (isLecturer || isEnrolled) {
         socket.join(courseId);
         console.log(`${socket.user.name} joined room: ${courseId}`);
@@ -70,21 +73,21 @@ export const initSocketServer = (server) => {
           const notificationMessage = `${socket.user.name} sent a new message in "${course.title}".`;
           const link = `/course/${courseId}/chat`;
           
-          const notifications = recipients.map(userId => ({
+          const notificationDocs = recipients.map(userId => ({
             user: userId,
             message: notificationMessage,
             link,
           }));
-
-          await Notification.insertMany(notifications);
           
-          recipients.forEach(userId => {
-            const socketId = userSocketMap.get(userId.toString());
+          const createdNotifications = await Notification.insertMany(notificationDocs);
+
+          createdNotifications.forEach(notification => {
+            const socketId = userSocketMap.get(notification.user.toString());
             if (socketId) {
-              io.to(socketId).emit('newNotification');
+              io.to(socketId).emit('new_notification_data', notification);
             }
           });
-          console.log(`Created and Pushed ${notifications.length} chat notifications.`);
+          console.log(`Created and Pushed ${createdNotifications.length} chat notifications.`);
         }
       } catch (error) {
         console.error('Error in sendMessage handler:', error);
