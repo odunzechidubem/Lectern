@@ -47,6 +47,7 @@ const createAnnouncement = asyncHandler(async (req, res) => {
         const socketId = userSocketMap.get(notification.user.toString());
         if (socketId) {
           io.to(socketId).emit("new_notification_data", notification);
+          console.log(`EMITTED new_notification_data to socket ${socketId} for user ${notification.user}`);
         }
       });
       console.log(`Created and Pushed ${createdNotifications.length} announcement notifications.`);

@@ -90,7 +90,7 @@ function App() {
   }, [socket, userInfo, dispatch, logoutApiCall]);
 
   if (isLoadingSettings) {
-    return <FullScreenLoader message="Loading application settings..." />;
+    return <FullScreenLoader message="Loading Platform..." />;
   }
 
   if (settingsError) {

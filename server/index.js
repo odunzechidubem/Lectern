@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 // --- FIXED CORS CONFIG ---
 const allowedOrigins = [
   process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
-  process.env.FRONTEND_URL,     // e.g., https://lectern.site
+  process.env.FRONTEND_URL,     // e.g., https://lectern.site 
 ];
 
 app.use(
