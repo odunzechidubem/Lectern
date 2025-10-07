@@ -51,17 +51,19 @@ const registerUser = asyncHandler(async (req, res) => {
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
     try {
+      const settings = await Settings.findOne({ singleton: 'system_settings' });
       await sendEmail({
         email: user.email,
         subject: 'LMS Email Verification',
         html: message,
+        siteName: settings?.siteName,
       });
 
       res.status(201).json({
         message: 'Registration successful. Please check your email to verify your account.',
       });
     } catch (err) {
-      await User.findByIdAndDelete(user._id); // Rollback user creation
+      await User.findByIdAndDelete(user._id);
       res.status(500);
       throw new Error('Email could not be sent. Please try again.');
     }
@@ -131,7 +133,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   user.verificationTokenExpires = undefined;
   await user.save();
 
-  res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?verified=true`);
+  res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
 });
 
 // ================== LOGOUT ==================
@@ -179,7 +181,6 @@ const getMySubmissions = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
-    // Always respond the same to prevent email enumeration
     return res.status(200).json({
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
@@ -192,10 +193,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const message = `<p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in 10 minutes.</p>`;
 
   try {
+    const settings = await Settings.findOne({ singleton: 'system_settings' });
     await sendEmail({
       email: user.email,
       subject: 'LMS Password Reset Request',
       html: message,
+      siteName: settings?.siteName,
     });
     res.status(200).json({
       message: 'If an account with that email exists, a password reset link has been sent.',
@@ -329,10 +332,12 @@ const requestEmailChange = asyncHandler(async (req, res) => {
   const message = `<p>You requested to change your account's email address. Please confirm by clicking below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
   try {
+    const settings = await Settings.findOne({ singleton: 'system_settings' });
     await sendEmail({
       email: newEmail,
       subject: 'Confirm Your New Email Address',
       html: message,
+      siteName: settings?.siteName,
     });
     res.status(200).json({
       message: 'If the email is available, you will receive a verification link.',
@@ -348,55 +353,51 @@ const requestEmailChange = asyncHandler(async (req, res) => {
 });
 
 const verifyEmailChange = asyncHandler(async (req, res) => {
-    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    const user = await User.findOne({
-        emailChangeToken: hashedToken,
-        emailChangeTokenExpires: { $gt: Date.now() },
-    });
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-    if (!user || !user.newEmail) {
-        res.status(400);
-        throw new Error('Token is invalid, expired, or the process was interrupted.');
+  const user = await User.findOne({
+    emailChangeToken: hashedToken,
+    emailChangeTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user || !user.newEmail) {
+    res.status(400);
+    throw new Error('Token is invalid, expired, or the process was interrupted.');
+  }
+
+  const emailAlreadyExists = await User.findOne({ email: user.newEmail });
+  if (emailAlreadyExists) {
+    user.newEmail = undefined;
+    user.emailChangeToken = undefined;
+    user.emailChangeTokenExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    res.status(400);
+    throw new Error('This email address has been taken by another account since your request.');
+  }
+
+  try {
+    user.email = user.newEmail;
+    user.isVerified = true;
+    user.newEmail = undefined;
+    user.emailChangeToken = undefined;
+    user.emailChangeTokenExpires = undefined;
+
+    const updatedUser = await user.save();
+
+    if (req.io && req.userSocketMap) {
+      const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
+      if (userSocketId) {
+        req.io.to(userSocketId).emit('force-logout', {
+          message: 'Your email has been changed. Please log in with your new email address.',
+        });
+      }
     }
-
-    const emailAlreadyExists = await User.findOne({ email: user.newEmail });
-    if (emailAlreadyExists) {
-        user.newEmail = undefined;
-        user.emailChangeToken = undefined;
-        user.emailChangeTokenExpires = undefined;
-        await user.save({ validateBeforeSave: false });
-        res.status(400);
-        throw new Error('This email address has been taken by another account since your request.');
-    }
-    
-    try {
-        const updatedUser = await User.findByIdAndUpdate(
-            user._id,
-            {
-                $set: { email: user.newEmail },
-                $unset: { newEmail: 1, emailChangeToken: 1, emailChangeTokenExpires: 1 },
-            },
-            { new: true }
-        );
-
-        if (!updatedUser) {
-            throw new Error('User could not be updated.');
-        }
-
-        if (req.io && req.userSocketMap) {
-            const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
-            if (userSocketId) {
-                req.io.to(userSocketId).emit('force-logout', {
-                    message: 'Your email has been changed. Please log in with your new email address.',
-                });
-            }
-        }
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?emailChanged=true`);
-    } catch (error) {
-        console.error('Error saving email change:', error);
-        res.status(500);
-        throw new Error('An error occurred while updating your email. Please try again.');
-    }
+    res.redirect(`${process.env.FRONTEND_URL}/login?emailChanged=true`);
+  } catch (error) {
+    console.error('Error finalizing email change:', error);
+    res.status(500);
+    throw new Error('An error occurred while updating your email. Please try again.');
+  }
 });
 
 // ================== EXPORTS ==================
