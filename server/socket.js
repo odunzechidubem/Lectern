@@ -13,17 +13,20 @@ export const initSocketServer = (server) => {
   const io = new Server(server, {
     cors: {
       origin: [
-        process.env.DEV_FRONTEND_URL,
-        process.env.FRONTEND_URL
-      ].filter(Boolean),
+        process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
+        process.env.FRONTEND_URL,   // e.g., https://lecternn.netlify.app
+      ].filter(Boolean), // Filters out any undefined/null values
       credentials: true,
     },
+    // Explicitly define allowed transports
+    transports: ['websocket', 'polling'],
   });
 
   io.use(async (socket, next) => {
     try {
       const cookie = socket.handshake.headers.cookie;
       if (!cookie) return next(new Error('Authentication error: No cookie provided.'));
+      
       const token = cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
       if (!token) return next(new Error('Authentication error: Token not found in cookie.'));
       
@@ -38,7 +41,7 @@ export const initSocketServer = (server) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`Socket Connected: ${socket.user.name} (${socket.id})`);
+    console.log(`Socket Connected: ${socket.user.name} (${socket.id}) via ${socket.conn.transport.name}`);
     userSocketMap.set(socket.user._id.toString(), socket.id);
 
     socket.on('joinCourse', async (courseId) => {

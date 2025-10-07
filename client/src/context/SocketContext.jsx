@@ -1,3 +1,5 @@
+// /src/context/SocketContext.jsx
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -14,14 +16,19 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (userInfo) {
-      // Corrected: Use environment variable for the backend URL.
-      // Add VITE_SOCKET_URL to your .env file (e.g., VITE_SOCKET_URL=https://lectern-usqo.onrender.com)
       const socketUrl = import.meta.env.VITE_SOCKET_URL;
+      if (!socketUrl) {
+        console.error('[Socket] VITE_SOCKET_URL is not defined. Real-time features will not work in production.');
+        return;
+      }
       
       const newSocket = io(socketUrl, {
         withCredentials: true,
-        query: { userId: userInfo._id }, // send userId to server for authentication
+        // --- THIS IS THE CRITICAL FIX ---
+        // Force WebSocket transport for all real-time communication
+        transports: ['websocket'],
       });
+      
       setSocket(newSocket);
 
       return () => {

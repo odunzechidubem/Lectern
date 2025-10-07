@@ -1,3 +1,5 @@
+// /src/slices/notificationsApiSlice.js
+
 import { apiSlice } from './apiSlice';
 import { io } from 'socket.io-client';
 
@@ -14,10 +16,25 @@ export const notificationsApiSlice = apiSlice.injectEndpoints({
         arg,
         { updateCachedData, cacheDataLoaded, cacheEntryRemoved }
       ) {
-        const socketUrl = import.meta.env.VITE_SOCKET_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+        const socketUrl = import.meta.env.VITE_SOCKET_URL;
+        if (!socketUrl) {
+            console.error('[Socket] VITE_SOCKET_URL is not defined. Real-time notifications will not work in production.');
+            return;
+        }
+
         const socket = io(socketUrl, {
             withCredentials: true,
-            transports: ['websocket'] // Using websocket directly can be more reliable
+            // --- THIS IS THE CRITICAL FIX ---
+            // Force the client to use only WebSocket transport, preventing fallback to long-polling.
+            transports: ['websocket'],
+        });
+
+        socket.on('connect', () => {
+          console.log('[Socket] WebSocket connection established for notifications.');
+        });
+
+        socket.on('connect_error', (error) => {
+          console.error('[Socket] Notification connection error:', error.message);
         });
 
         try {
@@ -25,14 +42,14 @@ export const notificationsApiSlice = apiSlice.injectEndpoints({
 
           socket.on('new_notification_data', (notification) => {
             updateCachedData((draft) => {
-              // Check if the notification already exists to prevent duplicates
               if (!draft.find(n => n._id === notification._id)) {
                 draft.unshift(notification);
               }
             });
           });
         } catch {
-          // no-op
+            // If the cache subscription is removed before the initial data is loaded,
+            // the cacheDataLoaded promise will be rejected.
         }
         
         await cacheEntryRemoved;
