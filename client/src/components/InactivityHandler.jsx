@@ -17,8 +17,8 @@ const InactivityHandler = () => {
   // Using refs for timers to avoid issues with closures and re-renders
   const inactivityTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
-  
-  const timeoutDuration = 15 * 60 * 1000; // 15 minutes
+
+  const timeoutDuration = 30 * 60 * 1000; // 30 minutes
   const countdownDuration = 60 * 1000; // 1 minute
 
   const logout = useCallback(async () => {
