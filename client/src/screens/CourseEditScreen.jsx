@@ -1,6 +1,9 @@
+// /src/screens/CourseEditScreen.jsx
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import axios from 'axios'; // <-- Make sure you have run `npm install axios`
 import { FaPlayCircle, FaTrash, FaUserGraduate, FaClipboardList, FaFilePdf, FaEye, FaBullhorn } from 'react-icons/fa';
 import {
   useGetCourseDetailsQuery,
@@ -41,12 +44,13 @@ const CourseEditScreen = () => {
     useGetAnnouncementsForCourseQuery(courseId);
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   const [addLecture, { isLoading: isAddingLecture }] = useAddLectureMutation();
-  const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Renamed for clarity
   const [deleteLecture, { isLoading: isDeletingLecture }] = useDeleteLectureMutation();
   const [createAssignment, { isLoading: isCreatingAssignment }] = useCreateAssignmentMutation();
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
+  const [isUploadingLargeFile, setIsUploadingLargeFile] = useState(false); // New state for direct upload
 
   useEffect(() => {
     if (course) {
@@ -55,7 +59,7 @@ const CourseEditScreen = () => {
     }
   }, [course]);
 
-  // Handlers
+  // Handler for updating course details
   const handleUpdateCourse = async (e) => {
     e.preventDefault();
     try {
@@ -66,115 +70,82 @@ const CourseEditScreen = () => {
     }
   };
 
+  // NEW Handler for adding lectures with direct-to-Cloudinary upload
   const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!lectureTitle || !videoFile) {
-      return toast.error('Lecture title and video are required.');
+        return toast.error('Lecture title and video file are required.');
     }
-    try {
-      const videoFormData = new FormData();
-      videoFormData.append('file', videoFile);
-      const videoRes = await uploadFile(videoFormData).unwrap();
-      let notesUrl = '';
-      if (notesFile) {
-        const notesFormData = new FormData();
-        notesFormData.append('file', notesFile);
-        notesUrl = (await uploadFile(notesFormData).unwrap()).url;
-      }
-      await addLecture({ courseId, title: lectureTitle, videoUrl: videoRes.url, notesUrl }).unwrap();
-      toast.success('Lecture added');
-      refetch();
-      setLectureTitle('');
-      setVideoFile(null);
-      setNotesFile(null);
-      document.getElementById('videoFile').value = null;
-      document.getElementById('notesFile').value = null;
-    } catch (err) {
-      toast.error(err?.data?.message || err.error);
-    }
-  };
 
-  const handleDeleteLecture = async (lectureId) => {
-    if (window.confirm('Are you sure?')) {
-      try {
-        await deleteLecture({ courseId, lectureId }).unwrap();
-        toast.success('Lecture deleted');
-        refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    }
-  };
+    setIsUploadingLargeFile(true);
+    const uploadToastId = toast.info('Starting video upload... This may take a moment.', { autoClose: false, closeButton: false });
 
-  const handleCreateAssignment = async (e) => {
-    e.preventDefault();
-    if (!assignmentTitle || !assignmentDueDate) {
-      return toast.error('Assignment title and due date are required.');
-    }
     try {
-      let instructionFileUrl = '';
-      if (assignmentFile) {
+        // Step 1: Get signature from our backend
+        const sigResponse = await axios.get('/api/upload/signature');
+        const { signature, timestamp, cloudname, apikey } = sigResponse.data;
+        
+        // Step 2: Prepare form data for direct upload to Cloudinary
         const formData = new FormData();
-        formData.append('file', assignmentFile);
-        instructionFileUrl = (await uploadFile(formData).unwrap()).url;
-      }
-      await createAssignment({
-        courseId,
-        title: assignmentTitle,
-        description: assignmentDesc,
-        dueDate: assignmentDueDate,
-        instructionFileUrl,
-      }).unwrap();
-      toast.success('Assignment created');
-      refetch();
-      setAssignmentTitle('');
-      setAssignmentDesc('');
-      setAssignmentDueDate('');
-      setAssignmentFile(null);
-      document.getElementById('assignmentFile').value = null;
-    } catch (err) {
-      toast.error(err?.data?.message || err.error);
-    }
-  };
+        formData.append('file', videoFile);
+        formData.append('timestamp', timestamp);
+        formData.append('signature', signature);
+        formData.append('api_key', apikey);
+        formData.append('folder', 'lms_uploads');
 
-  const handleDeleteAssignment = async (assignmentId) => {
-    if (window.confirm('Are you sure?')) {
-      try {
-        await deleteAssignment(assignmentId).unwrap();
-        toast.success('Assignment deleted');
+        // Step 3: Upload DIRECTLY to Cloudinary, showing progress
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudname}/auto/upload`;
+        
+        const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
+                }
+            }
+        });
+
+        const videoUrl = cloudinaryResponse.data.secure_url;
+        toast.update(uploadToastId, { render: 'Video uploaded! Processing notes...' });
+
+        // Step 4: Upload notes file (using the original, smaller server-side method)
+        let notesUrl = '';
+        if (notesFile) {
+            const notesFormData = new FormData();
+            notesFormData.append('file', notesFile);
+            const uploadRes = await uploadFile(notesFormData).unwrap();
+            notesUrl = uploadRes.url;
+        }
+
+        // Step 5: Save the URLs to our database
+        await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
+
+        toast.dismiss(uploadToastId);
+        toast.success('Lecture added successfully!');
+
+        // Step 6: Reset form
         refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    }
-  };
+        setLectureTitle('');
+        setVideoFile(null);
+        setNotesFile(null);
+        document.getElementById('videoFile').value = null;
+        if(document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
 
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
-    if (!announcementContent) {
-      return toast.error('Announcement content cannot be empty.');
-    }
-    try {
-      await createAnnouncement({ courseId, content: announcementContent }).unwrap();
-      toast.success('Announcement posted');
-      setAnnouncementContent('');
-      refetchAnnouncements(); // Use specific refetch
     } catch (err) {
-      toast.error(err?.data?.message || err.error);
+        toast.dismiss(uploadToastId);
+        console.error('Upload failed:', err);
+        const errorMessage = err.response?.data?.error?.message || err.message || 'An unknown error occurred during upload.';
+        toast.error(`Failed to add lecture: ${errorMessage}`);
+    } finally {
+        setIsUploadingLargeFile(false);
     }
   };
 
-  const handleDeleteAnnouncement = async (announcementId) => {
-    if (window.confirm('Are you sure?')) {
-      try {
-        await deleteAnnouncement(announcementId).unwrap();
-        toast.success('Announcement deleted');
-        refetchAnnouncements();
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    }
-  };
+  const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
+  const handleCreateAssignment = async (e) => { e.preventDefault(); if (!assignmentTitle || !assignmentDueDate) { return toast.error('Assignment title and due date are required.'); } try { let instructionFileUrl = ''; if (assignmentFile) { const formData = new FormData(); formData.append('file', assignmentFile); instructionFileUrl = (await uploadFile(formData).unwrap()).url; } await createAssignment({ courseId, title: assignmentTitle, description: assignmentDesc, dueDate: assignmentDueDate, instructionFileUrl }).unwrap(); toast.success('Assignment created'); refetch(); setAssignmentTitle(''); setAssignmentDesc(''); setAssignmentDueDate(''); setAssignmentFile(null); document.getElementById('assignmentFile').value = null; } catch (err) { toast.error(err?.data?.message || err.error); } };
+  const handleDeleteAssignment = async (assignmentId) => { if (window.confirm('Are you sure?')) { try { await deleteAssignment(assignmentId).unwrap(); toast.success('Assignment deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
+  const handleCreateAnnouncement = async (e) => { e.preventDefault(); if (!announcementContent) { return toast.error('Announcement content cannot be empty.'); } try { await createAnnouncement({ courseId, content: announcementContent }).unwrap(); toast.success('Announcement posted'); setAnnouncementContent(''); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } };
+  const handleDeleteAnnouncement = async (announcementId) => { if (window.confirm('Are you sure?')) { try { await deleteAnnouncement(announcementId).unwrap(); toast.success('Announcement deleted'); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
 
   return (
     <div>
@@ -257,14 +228,14 @@ const CourseEditScreen = () => {
                 </div>
                 <div className="mb-4">
                   <label className="block mb-2 text-gray-700" htmlFor="videoFile">Video File (MP4, MOV)</label>
-                  <input id="videoFile" type="file" onChange={(e) => setVideoFile(e.target.files[0])} className="w-full" />
+                  <input id="videoFile" type="file" onChange={(e) => setVideoFile(e.target.files[0])} className="w-full" accept="video/*" />
                 </div>
                 <div className="mb-4">
                   <label className="block mb-2 text-gray-700" htmlFor="notesFile">Notes File (PDF, optional)</label>
-                  <input id="notesFile" type="file" onChange={(e) => setNotesFile(e.target.files[0])} className="w-full" />
+                  <input id="notesFile" type="file" onChange={(e) => setNotesFile(e.target.files[0])} className="w-full" accept=".pdf" />
                 </div>
-                <button type="submit" disabled={isAddingLecture || isUploading} className="w-full py-2 text-white bg-green-500 rounded hover:bg-green-600">
-                  {isAddingLecture || isUploading ? 'Adding...' : 'Add Lecture'}
+                <button type="submit" disabled={isAddingLecture || isUploadingLargeFile || isUploadingSmallFile} className="w-full py-2 text-white bg-green-500 rounded hover:bg-green-600">
+                  {isUploadingLargeFile ? 'Uploading...' : 'Add Lecture'}
                 </button>
               </form>
             </div>
@@ -294,8 +265,8 @@ const CourseEditScreen = () => {
                     <div className="mb-4"><label className="block mb-2 text-gray-700" htmlFor="assignmentTitle">Title</label><input id="assignmentTitle" type="text" value={assignmentTitle} onChange={(e) => setAssignmentTitle(e.target.value)} className="w-full px-3 py-2 border rounded" /></div>
                     <div className="mb-4"><label className="block mb-2 text-gray-700" htmlFor="assignmentDesc">Description (optional)</label><textarea id="assignmentDesc" rows="3" value={assignmentDesc} onChange={(e) => setAssignmentDesc(e.target.value)} className="w-full px-3 py-2 border rounded whitespace-pre-wrap" /></div>
                     <div className="mb-4"><label className="block mb-2 text-gray-700" htmlFor="assignmentDueDate">Due Date</label><input id="assignmentDueDate" type="date" value={assignmentDueDate} onChange={(e) => setAssignmentDueDate(e.target.value)} className="w-full px-3 py-2 border rounded" /></div>
-                    <div className="mb-4"><label className="block mb-2 text-gray-700" htmlFor="assignmentFile">Instruction File (PDF, optional)</label><input type="file" id="assignmentFile" onChange={(e) => setAssignmentFile(e.target.files[0])} className="w-full" /></div>
-                    <button type="submit" disabled={isCreatingAssignment || isUploading} className="w-full py-2 text-white bg-purple-500 rounded hover:bg-purple-600">{isCreatingAssignment || isUploading ? 'Creating...' : 'Create Assignment'}</button>
+                    <div className="mb-4"><label className="block mb-2 text-gray-700" htmlFor="assignmentFile">Instruction File (PDF, optional)</label><input type="file" id="assignmentFile" onChange={(e) => setAssignmentFile(e.target.files[0])} className="w-full" accept=".pdf" /></div>
+                    <button type="submit" disabled={isCreatingAssignment || isUploadingSmallFile} className="w-full py-2 text-white bg-purple-500 rounded hover:bg-purple-600">{isCreatingAssignment || isUploadingSmallFile ? 'Creating...' : 'Create Assignment'}</button>
                 </form>
                 <h3 className="mb-2 text-lg font-semibold">Existing Assignments</h3>
                 {course.assignments?.length > 0 ? (

@@ -1,36 +1,13 @@
-// import jwt from 'jsonwebtoken';
-
-// const generateToken = (res, userId) => {
-//   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-//     expiresIn: '15m',
-//   });
-
-//   res.cookie('jwt', token, {
-//     httpOnly: true,
-
-//     secure: process.env.NODE_ENV === 'production' ? true : false, // boolean
-//     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-//     partitioned: true, // CHIPS support
-
-//     maxAge: 15 * 60 * 1000, // 15 minutes
-//   });
-// };
-
-// export default generateToken;
-
-
-
-
 import jwt from 'jsonwebtoken';
 
 const generateToken = (res, userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: '15m',
+    expiresIn: '30m',
   });
 
   const cookieOptions = {
     httpOnly: true,
-    maxAge: 15 * 60 * 1000, 
+    maxAge: 30 * 60 * 1000, 
     path: '/',               // ensure cookie is available site-wide
   };
 
@@ -45,7 +22,7 @@ const generateToken = (res, userId) => {
     cookieOptions.sameSite = 'lax';           // <-- explicitly set for dev
   }
 
-  res.cookie('jwt', token, cookieOptions);
+  res.cookie('jwt', token, cookieOptions); 
 };
 
 export default generateToken;
