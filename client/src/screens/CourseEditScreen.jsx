@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios'; // <-- Make sure you have run `npm install axios`
+import axios from 'axios'; // Make sure you have run `npm install axios` in your /client folder
 import { FaPlayCircle, FaTrash, FaUserGraduate, FaClipboardList, FaFilePdf, FaEye, FaBullhorn } from 'react-icons/fa';
 import {
   useGetCourseDetailsQuery,
@@ -39,18 +39,18 @@ const CourseEditScreen = () => {
 
   // API Hooks
   const { data: courseData, isLoading, refetch, error } = useGetCourseDetailsQuery(courseId);
-  const course = courseData; // Simplified for usage
+  const course = courseData;
   const { data: announcements, isLoading: isLoadingAnnouncements, error: announcementsError, refetch: refetchAnnouncements } =
     useGetAnnouncementsForCourseQuery(courseId);
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   const [addLecture, { isLoading: isAddingLecture }] = useAddLectureMutation();
-  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Renamed for clarity
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation();
   const [deleteLecture, { isLoading: isDeletingLecture }] = useDeleteLectureMutation();
   const [createAssignment, { isLoading: isCreatingAssignment }] = useCreateAssignmentMutation();
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
-  const [isUploadingLargeFile, setIsUploadingLargeFile] = useState(false); // New state for direct upload
+  const [isUploadingLargeFile, setIsUploadingLargeFile] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -70,74 +70,84 @@ const CourseEditScreen = () => {
     }
   };
 
-  // NEW Handler for adding lectures with direct-to-Cloudinary upload
+  // Handler for adding lectures with DIRECT-TO-CLOUDINARY upload
   const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!lectureTitle || !videoFile) {
-        return toast.error('Lecture title and video file are required.');
+      return toast.error('Lecture title and video file are required.');
+    }
+
+    // Defensive Check for Frontend Environment Variables
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY;
+
+    if (!cloudName || !apiKey) {
+        const errorMsg = "Cloudinary environment variables are missing on the frontend. Please ensure VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_API_KEY are set in your deployment environment.";
+        console.error(errorMsg);
+        toast.error("Upload configuration error. Please contact support.");
+        return;
     }
 
     setIsUploadingLargeFile(true);
-    const uploadToastId = toast.info('Starting video upload... This may take a moment.', { autoClose: false, closeButton: false });
+    const uploadToastId = toast.info('Starting video upload...', { autoClose: false, closeButton: false });
 
     try {
-        // Step 1: Get signature from our backend
-        const sigResponse = await axios.get('/api/upload/signature');
-        const { signature, timestamp, cloudname, apikey } = sigResponse.data;
-        
-        // Step 2: Prepare form data for direct upload to Cloudinary
-        const formData = new FormData();
-        formData.append('file', videoFile);
-        formData.append('timestamp', timestamp);
-        formData.append('signature', signature);
-        formData.append('api_key', apikey);
-        formData.append('folder', 'lms_uploads');
+      // Step 1: Get signature from our backend
+      const sigResponse = await axios.get('/api/upload/signature');
+      const { signature, timestamp } = sigResponse.data;
+      
+      // Step 2: Prepare form data for direct upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file', videoFile);
+      formData.append('timestamp', timestamp);
+      formData.append('signature', signature);
+      formData.append('api_key', apiKey);
+      formData.append('folder', 'lms_uploads');
 
-        // Step 3: Upload DIRECTLY to Cloudinary, showing progress
-        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudname}/auto/upload`;
-        
-        const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
-            onUploadProgress: (progressEvent) => {
-                if (progressEvent.total) {
-                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
-                }
-            }
-        });
-
-        const videoUrl = cloudinaryResponse.data.secure_url;
-        toast.update(uploadToastId, { render: 'Video uploaded! Processing notes...' });
-
-        // Step 4: Upload notes file (using the original, smaller server-side method)
-        let notesUrl = '';
-        if (notesFile) {
-            const notesFormData = new FormData();
-            notesFormData.append('file', notesFile);
-            const uploadRes = await uploadFile(notesFormData).unwrap();
-            notesUrl = uploadRes.url;
+      // Step 3: Upload DIRECTLY to Cloudinary, with progress tracking
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+      
+      const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
+          }
         }
+      });
 
-        // Step 5: Save the URLs to our database
-        await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
+      const videoUrl = cloudinaryResponse.data.secure_url;
+      toast.update(uploadToastId, { render: 'Video uploaded! Saving lecture...' });
 
-        toast.dismiss(uploadToastId);
-        toast.success('Lecture added successfully!');
+      // Step 4: Upload optional notes file (using the original, smaller server-side method)
+      let notesUrl = '';
+      if (notesFile) {
+        const notesFormData = new FormData();
+        notesFormData.append('file', notesFile);
+        const uploadRes = await uploadFile(notesFormData).unwrap();
+        notesUrl = uploadRes.url;
+      }
 
-        // Step 6: Reset form
-        refetch();
-        setLectureTitle('');
-        setVideoFile(null);
-        setNotesFile(null);
-        document.getElementById('videoFile').value = null;
-        if(document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
+      // Step 5: Save the URLs to our database
+      await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
+      toast.dismiss(uploadToastId);
+      toast.success('Lecture added successfully!');
+
+      // Step 6: Reset form state
+      refetch();
+      setLectureTitle('');
+      setVideoFile(null);
+      setNotesFile(null);
+      document.getElementById('videoFile').value = null;
+      if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
 
     } catch (err) {
-        toast.dismiss(uploadToastId);
-        console.error('Upload failed:', err);
-        const errorMessage = err.response?.data?.error?.message || err.message || 'An unknown error occurred during upload.';
-        toast.error(`Failed to add lecture: ${errorMessage}`);
+      toast.dismiss(uploadToastId);
+      console.error('Upload failed:', err);
+      const errorMessage = err.response?.data?.error?.message || err.message || 'An unknown error occurred during upload.';
+      toast.error(`Failed to add lecture: ${errorMessage}`);
     } finally {
-        setIsUploadingLargeFile(false);
+      setIsUploadingLargeFile(false);
     }
   };
 
