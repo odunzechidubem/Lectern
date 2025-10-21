@@ -1,30 +1,48 @@
+// /server/controllers/uploadController.js (Final Debugging Version 2)
+
 import asyncHandler from 'express-async-handler';
 import cloudinary from '../config/cloudinary.js';
 
-// This function for smaller uploads can remain as is.
 const uploadFile = asyncHandler(async (req, res) => {
-    // ... function content is unchanged ...
+  // This function is not being used for large uploads, it can be ignored.
 });
 
-// --- THIS IS THE CORRECTED FUNCTION ---
 const generateUploadSignature = asyncHandler(async (req, res) => {
+  // --- SERVER-SIDE LOGGING ---
+  console.log("--- [BACKEND] /api/upload/signature endpoint has been hit. ---");
+
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!apiSecret) {
+    console.error("[FATAL] CLOUDINARY_API_SECRET is NOT DEFINED on the server. Check Render environment variables.");
+    res.status(500);
+    throw new Error('Server configuration error: Cloudinary secret is missing.');
+  } else {
+    console.log("[SUCCESS] Server has loaded CLOUDINARY_API_SECRET.");
+  }
+
   try {
     const timestamp = Math.round((new Date).getTime() / 1000);
+    console.log(`[BACKEND] Timestamp generated: ${timestamp}`);
 
-    // --- THE FIX IS HERE: Parameters must be sorted alphabetically ---
     const params_to_sign = {
       folder: 'lms_uploads',
       timestamp: timestamp,
     };
+    
+    console.log("[BACKEND] Parameters to sign:", params_to_sign);
 
-    // Use the Cloudinary SDK to securely generate a signature.
     const signature = cloudinary.utils.api_sign_request(
       params_to_sign,
-      process.env.CLOUDINARY_API_SECRET
+      apiSecret
     );
     
-    // Add a log to confirm signature generation on the server
-    console.log('[SUCCESS] Generated upload signature:', signature);
+    if(!signature) {
+        console.error("[FATAL] cloudinary.utils.api_sign_request returned UNDEFINED. Check parameters and secret.");
+        throw new Error('Failed to generate a valid signature from Cloudinary SDK.');
+    }
+
+    console.log(`[BACKEND] Signature generated successfully: ${signature.substring(0, 10)}...`);
 
     res.status(200).json({
       signature: signature,
@@ -32,12 +50,10 @@ const generateUploadSignature = asyncHandler(async (req, res) => {
     });
 
   } catch (error) {
-      // Add a log to see the specific error on the server if it fails
-      console.error('[FAILURE] Failed to generate upload signature:', error);
-      res.status(500);
-      throw new Error(`Failed to generate upload signature: ${error.message}`);
+    console.error('[CRITICAL] An error was caught inside the generateUploadSignature function:', error);
+    res.status(500);
+    throw new Error(`Failed to generate upload signature: ${error.message}`);
   }
 });
-
 
 export { uploadFile, generateUploadSignature };
