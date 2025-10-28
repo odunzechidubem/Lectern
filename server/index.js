@@ -59,6 +59,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get('/', (req, res) => res.send('API is running successfully...'));
+
+// HEALTH CHECK ROUTE (for Render)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/upload', uploadRoutes);
