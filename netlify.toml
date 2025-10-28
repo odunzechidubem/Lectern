@@ -1,23 +1,24 @@
 # netlify.toml
 
-# This section tells Netlify's build system how to build your frontend
 [build]
-  # This should be the path to your frontend 'client' folder from the root
+  # This path should be correct, pointing to your frontend folder
   base = "client" 
-  # This is the command to build your React app
-  command = "npm run build"
-  # This is the directory that gets created after the build
+  
+  # --- THIS IS THE FIX ---
+  # Chain the install command with the build command.
+  # "npm install" will run first, then "npm run build" will run.
+  command = "npm install && npm run build"
+  
+  # The publish directory is where the build output is placed.
   publish = "dist"
 
-# This section configures the secrets scanner
 [build.secrets]
-  # Add the keys of the environment variables that are SAFE to be exposed
-  # in the frontend build output.
+  # This list of keys to omit is still correct.
   omit = [
     "VITE_CLOUDINARY_CLOUD_NAME",
     "VITE_CLOUDINARY_API_KEY",
     "VITE_SOCKET_URL",
     "VITE_API_URL",
-    "VITE_GOOGLE_CLIENT_ID", # If you use this on the client
-    "VITE_STRIPE_PUBLISHABLE_KEY" # If you use this on the client
+    "VITE_GOOGLE_CLIENT_ID",
+    "VITE_STRIPE_PUBLISHABLE_KEY"
   ]
