@@ -1,19 +1,20 @@
-# netlify.toml
+# netlify.toml (Final, Most Robust Version)
 
 [build]
-  # This path should be correct, pointing to your frontend folder
+  # Tell Netlify that the frontend code is in the 'client' subdirectory
   base = "client" 
   
-  # --- THIS IS THE FIX ---
-  # Chain the install command with the build command.
-  # "npm install" will run first, then "npm run build" will run.
-  command = "npm install && npm run build"
+  # --- THE DEFINITIVE FIX ---
+  # 1. `npm ci`: Does a clean install of all dependencies from package-lock.json.
+  # 2. `npx vite build`: Explicitly tells the system to find and run the `vite`
+  #    executable from the local `node_modules` folder.
+  command = "npm ci && npx vite build"
   
-  # The publish directory is where the build output is placed.
+  # The output folder created by `vite build`
   publish = "dist"
 
 [build.secrets]
-  # This list of keys to omit is still correct.
+  # This list remains the same.
   omit = [
     "VITE_CLOUDINARY_CLOUD_NAME",
     "VITE_CLOUDINARY_API_KEY",
