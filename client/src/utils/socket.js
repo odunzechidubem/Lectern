@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 const SOCKET_URL =
   import.meta.env.MODE === "development"
     ? "http://localhost:5000"
-    : "https://lectern-usqo.onrender.com"; // your Render backend URL
+    : "https://lectern-5o7h.onrender.com"; // your Render backend URL
 
 // Initialize Socket connection
 export const socket = io(SOCKET_URL, {
