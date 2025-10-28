@@ -71,75 +71,85 @@ const CourseEditScreen = () => {
   };
 
   // --- DEFINITIVE FIX: UNSIGNED UPLOAD HANDLER ---
-  const handleAddLecture = async (e) => {
+// /src/screens/CourseEditScreen.jsx (Replace the handleAddLecture function)
+
+const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!lectureTitle || !videoFile) {
-      return toast.error('Lecture title and video file are required.');
+        return toast.error('Lecture title and video file are required.');
     }
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = 'lms_unsigned_preset'; // The preset name you created in Cloudinary
+    const uploadPreset = 'lms_unsigned_preset'; 
 
     if (!cloudName) {
-      toast.error("Upload configuration error. Please contact support.");
-      console.error("VITE_CLOUDINARY_CLOUD_NAME environment variable is not set.");
-      return;
+        toast.error("Upload configuration error. Please contact support.");
+        return;
     }
 
     setIsUploading(true);
-    const uploadToastId = toast.info('Starting video upload...', { autoClose: false, closeButton: false });
+    const uploadToastId = toast.info('Starting upload...', { autoClose: false, closeButton: false });
 
     try {
-      // Step 1: Prepare form data for direct unsigned upload to Cloudinary
-      const videoFormData = new FormData();
-      videoFormData.append('file', videoFile);
-      videoFormData.append('upload_preset', uploadPreset);
-      videoFormData.append('folder', 'lms_uploads');
+        // --- STEP 1: UPLOAD THE LARGE VIDEO FILE ---
+        toast.update(uploadToastId, { render: 'Uploading video...' });
+        const videoFormData = new FormData();
+        videoFormData.append('file', videoFile);
+        videoFormData.append('upload_preset', uploadPreset);
+        videoFormData.append('folder', 'lms_uploads');
 
-      // Step 2: Upload Video DIRECTLY to Cloudinary with progress
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-      const cloudinaryResponse = await axios.post(cloudinaryUrl, videoFormData, {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
-          }
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+        
+        const videoResponse = await axios.post(cloudinaryUrl, videoFormData, {
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
+                }
+            }
+        });
+        const videoUrl = videoResponse.data.secure_url;
+        console.log("Video upload successful:", videoUrl);
+
+
+        // --- STEP 2: SEQUENTIALLY UPLOAD THE NOTES FILE (IF IT EXISTS) ---
+        let notesUrl = '';
+        if (notesFile) {
+            toast.update(uploadToastId, { render: 'Uploading notes PDF...' });
+            const notesFormData = new FormData();
+            notesFormData.append('file', notesFile);
+            notesFormData.append('upload_preset', uploadPreset);
+            notesFormData.append('folder', 'lms_uploads');
+
+            // We re-use the same cloudinaryUrl
+            const notesResponse = await axios.post(cloudinaryUrl, notesFormData);
+            notesUrl = notesResponse.data.secure_url;
+            console.log("Notes upload successful:", notesUrl);
         }
-      });
-      const videoUrl = cloudinaryResponse.data.secure_url;
-      toast.update(uploadToastId, { render: 'Video uploaded! Saving lecture...' });
 
-      // Step 3: Upload optional notes file (using the original server-side method for smaller files)
-      let notesUrl = '';
-      if (notesFile) {
-        const notesFormData = new FormData();
-        notesFormData.append('file', notesFile);
-        const uploadRes = await uploadFile(notesFormData).unwrap();
-        notesUrl = uploadRes.url;
-      }
+        // --- STEP 3: SAVE TO DATABASE ---
+        toast.update(uploadToastId, { render: 'Saving lecture...' });
+        await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
+        toast.dismiss(uploadToastId);
+        toast.success('Lecture added successfully!');
 
-      // Step 4: Save the URLs to your own database
-      await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
-      toast.dismiss(uploadToastId);
-      toast.success('Lecture added successfully!');
-
-      // Step 5: Reset form state
-      refetch();
-      setLectureTitle('');
-      setVideoFile(null);
-      setNotesFile(null);
-      document.getElementById('videoFile').value = null;
-      if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
+        // --- STEP 4: RESET FORM ---
+        refetch();
+        setLectureTitle('');
+        setVideoFile(null);
+        setNotesFile(null);
+        document.getElementById('videoFile').value = null;
+        if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
 
     } catch (err) {
-      toast.dismiss(uploadToastId);
-      console.error('Upload failed:', err);
-      const errorMessage = err.response?.data?.error?.message || 'An unknown upload error occurred.';
-      toast.error(`Failed to add lecture: ${errorMessage}`);
+        toast.dismiss(uploadToastId);
+        console.error('An error occurred during the upload process:', err);
+        const errorMessage = err.response?.data?.error?.message || 'An unknown upload error occurred.';
+        toast.error(`Failed to add lecture: ${errorMessage}`);
     } finally {
-      setIsUploading(false);
+        setIsUploading(false);
     }
-  };
+};
 
   const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   const handleCreateAssignment = async (e) => { e.preventDefault(); if (!assignmentTitle || !assignmentDueDate) { return toast.error('Assignment title and due date are required.'); } try { let instructionFileUrl = ''; if (assignmentFile) { const formData = new FormData(); formData.append('file', assignmentFile); instructionFileUrl = (await uploadFile(formData).unwrap()).url; } await createAssignment({ courseId, title: assignmentTitle, description: assignmentDesc, dueDate: assignmentDueDate, instructionFileUrl }).unwrap(); toast.success('Assignment created'); refetch(); setAssignmentTitle(''); setAssignmentDesc(''); setAssignmentDueDate(''); setAssignmentFile(null); document.getElementById('assignmentFile').value = null; } catch (err) { toast.error(err?.data?.message || err.error); } };
