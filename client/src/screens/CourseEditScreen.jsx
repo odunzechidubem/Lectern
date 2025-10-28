@@ -292,6 +292,7 @@ const CourseEditScreen = () => {
       )}
     </div>
   );
-};
+};  
+
 
 export default CourseEditScreen;
