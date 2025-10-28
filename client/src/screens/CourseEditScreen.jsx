@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios'; // Make sure you have run `npm install axios` in your /client folder
+import axios from 'axios';
 import { FaPlayCircle, FaTrash, FaUserGraduate, FaClipboardList, FaFilePdf, FaEye, FaBullhorn } from 'react-icons/fa';
 import {
   useGetCourseDetailsQuery,
@@ -50,7 +50,7 @@ const CourseEditScreen = () => {
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
-  const [isUploadingLargeFile, setIsUploadingLargeFile] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // Unified state for all upload processes
 
   useEffect(() => {
     if (course) {
@@ -70,108 +70,76 @@ const CourseEditScreen = () => {
     }
   };
 
-  // Handler for adding lectures with DIRECT-TO-CLOUDINARY upload
-// /src/screens/CourseEditScreen.jsx (Definitive Debugging Version)
-
-const handleAddLecture = async (e) => {
+  // --- DEFINITIVE FIX: UNSIGNED UPLOAD HANDLER ---
+  const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!lectureTitle || !videoFile) {
-        return toast.error('Lecture title and video file are required.');
+      return toast.error('Lecture title and video file are required.');
     }
 
-    // --- STEP 1: VERIFY FRONTEND ENV VARIABLES ---
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY;
+    const uploadPreset = 'lms_unsigned_preset'; // The preset name you created in Cloudinary
 
-    console.log("--- DEBUG PHASE 1: Verifying Environment Variables ---");
-    console.log("VITE_CLOUDINARY_CLOUD_NAME:", cloudName);
-    console.log("VITE_CLOUDINARY_API_KEY:", apiKey);
-
-    if (!cloudName || !apiKey) {
-        const errorMsg = "FATAL: Cloudinary environment variables are not available in the frontend build. Check Netlify environment settings.";
-        console.error(errorMsg);
-        toast.error("Upload configuration error. Please contact support.");
-        return;
+    if (!cloudName) {
+      toast.error("Upload configuration error. Please contact support.");
+      console.error("VITE_CLOUDINARY_CLOUD_NAME environment variable is not set.");
+      return;
     }
-    console.log("PHASE 1: Success. Frontend environment variables are loaded.");
 
-    setIsUploadingLargeFile(true);
-    const uploadToastId = toast.info('Starting secure upload...', { autoClose: false, closeButton: false });
+    setIsUploading(true);
+    const uploadToastId = toast.info('Starting video upload...', { autoClose: false, closeButton: false });
 
     try {
-        // --- STEP 2: GET SIGNATURE FROM YOUR BACKEND ---
-        console.log("--- DEBUG PHASE 2: Fetching Signature from Backend ---");
-        const sigResponse = await axios.get('/api/upload/signature');
-        const { signature, timestamp } = sigResponse.data;
-        console.log("PHASE 2: Success. Received signature and timestamp.");
+      // Step 1: Prepare form data for direct unsigned upload to Cloudinary
+      const videoFormData = new FormData();
+      videoFormData.append('file', videoFile);
+      videoFormData.append('upload_preset', uploadPreset);
+      videoFormData.append('folder', 'lms_uploads');
 
-        // --- STEP 3: PREPARE FORM DATA FOR CLOUDINARY ---
-        console.log("--- DEBUG PHASE 3: Preparing FormData for Cloudinary ---");
-        const formData = new FormData();
-        formData.append('file', videoFile);
-        formData.append('timestamp', timestamp);
-        formData.append('signature', signature);
-        formData.append('api_key', apiKey);
-        formData.append('folder', 'lms_uploads');
-        
-        // Log FormData contents for inspection
-        for (let [key, value] of formData.entries()) {
-            console.log(`FormData ==> ${key}:`, value);
+      // Step 2: Upload Video DIRECTLY to Cloudinary with progress
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+      const cloudinaryResponse = await axios.post(cloudinaryUrl, videoFormData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
+          }
         }
-        
-        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-        console.log("PHASE 3: FormData prepared. Target URL:", cloudinaryUrl);
+      });
+      const videoUrl = cloudinaryResponse.data.secure_url;
+      toast.update(uploadToastId, { render: 'Video uploaded! Saving lecture...' });
 
-        // --- STEP 4: DIRECT UPLOAD TO CLOUDINARY ---
-        console.log("--- DEBUG PHASE 4: Initiating direct upload to Cloudinary... ---");
-        
-        const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
-            onUploadProgress: (progressEvent) => {
-                if (progressEvent.total) {
-                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    toast.update(uploadToastId, { render: `Uploading video: ${percentCompleted}%` });
-                }
-            }
-        });
+      // Step 3: Upload optional notes file (using the original server-side method for smaller files)
+      let notesUrl = '';
+      if (notesFile) {
+        const notesFormData = new FormData();
+        notesFormData.append('file', notesFile);
+        const uploadRes = await uploadFile(notesFormData).unwrap();
+        notesUrl = uploadRes.url;
+      }
 
-        console.log("PHASE 4: Success. Cloudinary responded:", cloudinaryResponse.data);
-        const videoUrl = cloudinaryResponse.data.secure_url;
-        toast.update(uploadToastId, { render: 'Video uploaded! Saving lecture...' });
+      // Step 4: Save the URLs to your own database
+      await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
+      toast.dismiss(uploadToastId);
+      toast.success('Lecture added successfully!');
 
-        // --- STEP 5 & 6 (UNCHANGED) ---
-        let notesUrl = '';
-        if (notesFile) {
-            const notesFormData = new FormData();
-            notesFormData.append('file', notesFile);
-            const uploadRes = await uploadFile(notesFormData).unwrap();
-            notesUrl = uploadRes.url;
-        }
-
-        await addLecture({ courseId, title: lectureTitle, videoUrl, notesUrl }).unwrap();
-        toast.dismiss(uploadToastId);
-        toast.success('Lecture added successfully!');
-
-        refetch();
-        setLectureTitle('');
-        setVideoFile(null);
-        setNotesFile(null);
-        document.getElementById('videoFile').value = null;
-        if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
+      // Step 5: Reset form state
+      refetch();
+      setLectureTitle('');
+      setVideoFile(null);
+      setNotesFile(null);
+      document.getElementById('videoFile').value = null;
+      if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
 
     } catch (err) {
-        toast.dismiss(uploadToastId);
-        console.error('--- [UPLOAD FAILED] ---');
-        console.error('Full error object:', err);
-        if (err.response) {
-            console.error('Error Response Data:', err.response.data);
-            console.error('Error Response Status:', err.response.status);
-        }
-        const errorMessage = err.response?.data?.error?.message || err.message || 'An unknown error occurred during upload.';
-        toast.error(`Failed to add lecture: ${errorMessage}`);
+      toast.dismiss(uploadToastId);
+      console.error('Upload failed:', err);
+      const errorMessage = err.response?.data?.error?.message || 'An unknown upload error occurred.';
+      toast.error(`Failed to add lecture: ${errorMessage}`);
     } finally {
-        setIsUploadingLargeFile(false);
+      setIsUploading(false);
     }
-};
+  };
 
   const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   const handleCreateAssignment = async (e) => { e.preventDefault(); if (!assignmentTitle || !assignmentDueDate) { return toast.error('Assignment title and due date are required.'); } try { let instructionFileUrl = ''; if (assignmentFile) { const formData = new FormData(); formData.append('file', assignmentFile); instructionFileUrl = (await uploadFile(formData).unwrap()).url; } await createAssignment({ courseId, title: assignmentTitle, description: assignmentDesc, dueDate: assignmentDueDate, instructionFileUrl }).unwrap(); toast.success('Assignment created'); refetch(); setAssignmentTitle(''); setAssignmentDesc(''); setAssignmentDueDate(''); setAssignmentFile(null); document.getElementById('assignmentFile').value = null; } catch (err) { toast.error(err?.data?.message || err.error); } };
@@ -266,8 +234,8 @@ const handleAddLecture = async (e) => {
                   <label className="block mb-2 text-gray-700" htmlFor="notesFile">Notes File (PDF, optional)</label>
                   <input id="notesFile" type="file" onChange={(e) => setNotesFile(e.target.files[0])} className="w-full" accept=".pdf" />
                 </div>
-                <button type="submit" disabled={isAddingLecture || isUploadingLargeFile || isUploadingSmallFile} className="w-full py-2 text-white bg-green-500 rounded hover:bg-green-600">
-                  {isUploadingLargeFile ? 'Uploading...' : 'Add Lecture'}
+                <button type="submit" disabled={isAddingLecture || isUploading || isUploadingSmallFile} className="w-full py-2 text-white bg-green-500 rounded hover:bg-green-600">
+                  {isUploading ? 'Uploading...' : 'Add Lecture'}
                 </button>
               </form>
             </div>
