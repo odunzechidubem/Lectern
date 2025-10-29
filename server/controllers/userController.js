@@ -10,6 +10,32 @@ import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
+// ================== AUTH STATUS CHECK ==================
+// const checkAuthStatus = asyncHandler(async (req, res) => {
+//   const user = await User.findById(req.user._id);
+//   if (!user) {
+//     res.status(404);
+//     throw new Error('User not found');
+//   }
+//   res.status(200).json({
+//     _id: user._id,
+//     name: user.name,
+//     email: user.email,
+//     role: user.role,
+//   });
+// });
+
+
+// ================== CHECK AUTH STATUS (THE NEW FUNCTION) ==================
+const checkAuthStatus = asyncHandler(async (req, res) => {
+  // The 'protect' middleware runs before this. If the JWT is valid,
+  // it attaches the user to `req.user`. If not, this function is never reached.
+  // Therefore, if we get here, the user is authenticated.
+  // We can send back the user object again so the frontend can stay in sync.
+  const user = await User.findById(req.user._id).select('-password');
+  res.status(200).json(user);
+});
+
 // ================== REGISTER ==================
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
@@ -452,4 +478,5 @@ export {
   deleteUserAccount,
   requestEmailChange,
   verifyEmailChange,
+  checkAuthStatus,
 };
