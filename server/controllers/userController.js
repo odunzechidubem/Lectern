@@ -8,7 +8,7 @@ import Assignment from '../models/assignmentModel.js';
 import Settings from '../models/settingsModel.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
-import crypto from 'crypto';
+import crypto from 'crypto'; 
 
 // ================== REGISTER ==================
 const registerUser = asyncHandler(async (req, res) => {

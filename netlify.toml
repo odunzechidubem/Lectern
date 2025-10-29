@@ -23,3 +23,13 @@
     "VITE_GOOGLE_CLIENT_ID",
     "VITE_STRIPE_PUBLISHABLE_KEY"
   ]
+
+  # This rule tells Netlify how to handle Single Page Application routing.
+[[redirects]]
+  # Catches any path that isn't a file or folder that already exists.
+  from = "/*"
+  # Serves the main index.html file instead.
+  to = "/index.html"
+  # Returns a 200 status, which keeps the original URL in the browser bar.
+  # This is crucial for React Router to read the path and token.
+  status = 200

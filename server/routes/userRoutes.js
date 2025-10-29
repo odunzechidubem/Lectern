@@ -9,7 +9,7 @@ import {
 import { protect, student, isUser } from '../middleware/authMiddleware.js';
 
 router.post('/register', registerUser);
-router.post('/login', authUser);
+router.post('/login', authUser); 
 router.post('/logout', logoutUser);
 router.get('/verify/:token', verifyEmail);
 router.post('/forgot-password', forgotPassword);

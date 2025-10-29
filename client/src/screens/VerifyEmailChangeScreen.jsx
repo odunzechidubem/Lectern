@@ -13,7 +13,7 @@ const VerifyEmailChangeScreen = () => {
     // This check prevents the effect from running twice in development due to Strict Mode
     if (hasVerified.current) {
       return;
-    }
+    } 
     hasVerified.current = true;
 
     const verifyToken = async () => {

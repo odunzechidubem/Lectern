@@ -1,11 +1,15 @@
+// /src/screens/LoginScreen.jsx
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../slices/usersApiSlice';
 import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Meta from '../components/Meta';
+import Message from '../components/Message'; // Import Message component
+import Loader from '../components/Loader'; // Assuming Loader is in your components
 import { USER_ROLES } from '../constants';
 
 const LoginScreen = () => {
@@ -13,10 +17,19 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState(true);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation(); // Get location to read state and query params
+
   const [login, { isLoading }] = useLoginMutation();
   const { userInfo } = useSelector((state) => state.auth);
+
+  // --- THE FIX: Check for state and params ---
+  const fromRegistration = location.state?.fromRegistration;
+  const urlParams = new URLSearchParams(location.search);
+  const isVerified = urlParams.get('verified');
+  // --- END FIX ---
 
   useEffect(() => {
     if (userInfo) {
@@ -61,6 +74,24 @@ const LoginScreen = () => {
       <Meta title="Lectern | Sign in" description="Sign in to your Lectern account" />
       <div className="flex justify-center">
         <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
+
+          {/* --- THE FIX: Display contextual messages --- */}
+          {fromRegistration && (
+            <div className="mb-4">
+              <Message variant="success">
+                Registration successful! Please check your email to verify your account.
+              </Message>
+            </div>
+          )}
+          {isVerified && (
+            <div className="mb-4">
+              <Message variant="success">
+                Email verified successfully! You can now log in.
+              </Message>
+            </div>
+          )}
+          {/* --- END FIX --- */}
+
           <h1 className="mb-6 text-2xl font-bold text-gray-700">Sign In</h1>
           <div className="mb-4">
             <label className="block mb-2 text-gray-700" htmlFor="email">Email Address</label>
@@ -97,10 +128,10 @@ const LoginScreen = () => {
           </div>
           <button
             type="submit"
-            className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300"
+            className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center"
             disabled={isLoading}
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading ? <Loader /> : 'Sign In'}
           </button>
           <div className="flex items-center justify-between mt-4 text-sm">
             <Link to="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</Link>
