@@ -47,8 +47,8 @@ const registerUser = asyncHandler(async (req, res) => {
     const verificationToken = user.createVerificationToken();
     await user.save({ validateBeforeSave: false });
 
-    // --- THE FIX: Create a link that points to your frontend route ---
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
+    // The link must point to the BACKEND API endpoint
+    const verifyUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
     try {
@@ -74,31 +74,67 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// ================== VERIFY EMAIL ==================
+// ================== VERIFY EMAIL (DEFINITIVE DEBUGGING FIX) ==================
 const verifyEmail = asyncHandler(async (req, res) => {
+  console.log('--- [BACKEND] verifyEmail function initiated. ---');
+  
+  const rawToken = req.params.token;
+  if (!rawToken) {
+    console.error('[BACKEND] FAILED: No token found in URL.');
+    res.status(400);
+    throw new Error('Verification token is missing.');
+  }
+  console.log('[BACKEND] Step 1: Raw token from URL params received.');
+
   const verificationToken = crypto
     .createHash('sha256')
-    .update(req.params.token)
+    .update(rawToken)
     .digest('hex');
+  console.log('[BACKEND] Step 2: Hashed token for DB query:', verificationToken.substring(0, 10) + '...');
 
+  console.log('[BACKEND] Step 3: Querying database for user with this hashed token...');
   const user = await User.findOne({
     verificationToken,
     verificationTokenExpires: { $gt: Date.now() },
   });
 
   if (!user) {
-    res.status(400);
-    throw new Error('Invalid or expired verification token.');
+    console.error('[BACKEND] FAILED at Step 4: No user found with this token or token has expired.');
+    const expiredUser = await User.findOne({ verificationToken });
+    if (expiredUser) {
+        console.error('[BACKEND] DEBUG: A user was found, but their token has expired. Expiration was:', expiredUser.emailChangeTokenExpires);
+    } else {
+        console.error('[BACKEND] DEBUG: No user with this token exists in the database at all.');
+    }
+    return res.redirect(`${process.env.FRONTEND_URL}/login?verified=failed`);
   }
+  console.log(`[BACKEND] Step 4: User found successfully! User: ${user.email}, Current isVerified status: ${user.isVerified}`);
 
   user.isVerified = true;
   user.verificationToken = undefined;
   user.verificationTokenExpires = undefined;
-  await user.save();
 
-  // --- THE FIX: Send a JSON success response, DO NOT REDIRECT ---
-  res.status(200).json({ message: 'Email verified successfully.' });
+  try {
+    console.log('[BACKEND] Step 5: Attempting to save user...');
+    await user.save();
+    console.log(`[BACKEND] SUCCESS at Step 5: User ${user.email} saved.`);
+
+    const freshlyFetchedUser = await User.findById(user._id);
+    if (freshlyFetchedUser && freshlyFetchedUser.isVerified) {
+        console.log(`[BACKEND] CONFIRMATION FETCH: User's isVerified status in DB is now: true.`);
+    } else {
+        console.error(`[BACKEND] FATAL CONFIRMATION FAILURE: User's isVerified status in DB is still false after saving!`);
+    }
+
+  } catch (error) {
+    console.error('[BACKEND] FAILED at Step 5: A database error occurred during user.save()', error);
+    return res.redirect(`${process.env.FRONTEND_URL}/login?verified=dberror`);
+  }
+
+  console.log('[BACKEND] Step 6: Redirecting user to frontend login page...');
+  return res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
 });
+
 
 // ================== LOGIN ==================
 const authUser = asyncHandler(async (req, res) => {
@@ -191,7 +227,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  // This link must point to the frontend
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   const message = `<p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in 10 minutes.</p>`;
 
@@ -331,8 +366,7 @@ const requestEmailChange = asyncHandler(async (req, res) => {
   user.newEmail = newEmail.toLowerCase();
   await user.save({ validateBeforeSave: false });
 
-  // This link must also point to the frontend
-  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email-change/${changeToken}`;
+  const verifyUrl = `${process.env.BACKEND_URL}/api/users/verify-email-change/${changeToken}`;
   const message = `<p>You requested to change your account's email address. Please confirm by clicking below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
   try {
