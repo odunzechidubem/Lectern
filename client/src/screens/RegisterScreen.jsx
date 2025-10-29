@@ -8,7 +8,7 @@ import { clearCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import Meta from '../components/Meta';
-import Loader from '../components/Loader'; // Assuming Loader is in your components
+import Loader from '../components/Loader';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -56,7 +56,7 @@ const RegisterScreen = () => {
       toast.success(res.message);
       
       // --- THE FIX ---
-      // Navigate to the login page and pass a state to show a specific message.
+      // Navigate to the login page with a state that LoginScreen can read.
       navigate('/login', { state: { fromRegistration: true } });
 
     } catch (err) {
@@ -104,11 +104,11 @@ const RegisterScreen = () => {
           <div className="mb-6">
             <label className="block text-gray-700 mb-2">I am a:</label>
             <select className="w-full px-3 py-2 border rounded bg-white" value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="student">Student</option>
-                <option value="lecturer">Lecturer</option>
+              <option value="student">Student</option>
+              <option value="lecturer">Lecturer</option>
             </select>
           </div>
-          <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300" disabled={isLoading}>{isLoading ? <Loader /> : 'Register'}</button>
+          <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center items-center" disabled={isLoading}>{isLoading ? <Loader /> : 'Register'}</button>
           <p className="mt-4 text-center text-sm text-gray-600">Already have an account?{' '}<Link to="/login" className="text-blue-500 hover:underline">Login</Link></p>
         </form>
       </div>

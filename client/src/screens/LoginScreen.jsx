@@ -1,7 +1,7 @@
 // /src/screens/LoginScreen.jsx
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../slices/usersApiSlice';
 import { setCredentials } from '../slices/authSlice';
@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Meta from '../components/Meta';
 import Message from '../components/Message'; // Import Message component
-import Loader from '../components/Loader'; // Assuming Loader is in your components
+import Loader from '../components/Loader';
 import { USER_ROLES } from '../constants';
 
 const LoginScreen = () => {
@@ -25,10 +25,10 @@ const LoginScreen = () => {
   const [login, { isLoading }] = useLoginMutation();
   const { userInfo } = useSelector((state) => state.auth);
 
-  // --- THE FIX: Check for state and params ---
+  // --- THE FIX: Check for state and params from the URL ---
   const fromRegistration = location.state?.fromRegistration;
   const urlParams = new URLSearchParams(location.search);
-  const isVerified = urlParams.get('verified');
+  const isVerified = urlParams.get('verified') === 'true'; // Check for the exact string 'true'
   // --- END FIX ---
 
   useEffect(() => {
@@ -75,7 +75,7 @@ const LoginScreen = () => {
       <div className="flex justify-center">
         <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
 
-          {/* --- THE FIX: Display contextual messages --- */}
+          {/* --- THE FIX: Display contextual messages at the top of the form --- */}
           {fromRegistration && (
             <div className="mb-4">
               <Message variant="success">
@@ -128,7 +128,7 @@ const LoginScreen = () => {
           </div>
           <button
             type="submit"
-            className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center"
+            className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center items-center"
             disabled={isLoading}
           >
             {isLoading ? <Loader /> : 'Sign In'}
