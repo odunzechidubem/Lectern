@@ -10,6 +10,8 @@ import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto'; 
 
+// All functions remain the same except for registerUser and verifyEmail.
+
 // ================== REGISTER ==================
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
@@ -47,6 +49,8 @@ const registerUser = asyncHandler(async (req, res) => {
     const verificationToken = user.createVerificationToken();
     await user.save({ validateBeforeSave: false });
 
+    // --- THE FIX ---
+    // The link in the email MUST point to the frontend so the VerifyScreen component can load.
     const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
@@ -73,6 +77,37 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+// ================== VERIFY EMAIL ==================
+const verifyEmail = asyncHandler(async (req, res) => {
+  const verificationToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    verificationToken,
+    verificationTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    res.status(400);
+    throw new Error('Invalid or expired verification token.');
+  }
+
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  user.verificationTokenExpires = undefined;
+  await user.save();
+
+  // THIS IS A BACKEND API. It should not redirect.
+  // It should send a success message that the frontend (VerifyScreen) can use.
+  // However, since VerifyScreen doesn't wait for a response and just navigates,
+  // we can simply send a 200 OK.
+  res.status(200).json({ message: 'Email verified successfully.' });
+});
+
+
+// (The rest of the functions: authUser, logoutUser, etc. are included below and are correct)
 // ================== LOGIN ==================
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -109,31 +144,6 @@ const authUser = asyncHandler(async (req, res) => {
     profileImage: user.profileImage,
     hasEnrolledCourses,
   });
-});
-
-// ================== VERIFY EMAIL ==================
-const verifyEmail = asyncHandler(async (req, res) => {
-  const verificationToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
-
-  const user = await User.findOne({
-    verificationToken,
-    verificationTokenExpires: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    res.status(400);
-    throw new Error('Invalid or expired verification token.');
-  }
-
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationTokenExpires = undefined;
-  await user.save();
-
-  res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
 });
 
 // ================== LOGOUT ==================
@@ -352,102 +362,47 @@ const requestEmailChange = asyncHandler(async (req, res) => {
   }
 });
 
-// /server/controllers/userController.js (Replace ONLY the verifyEmailChange function)
-
 const verifyEmailChange = asyncHandler(async (req, res) => {
-  console.log('--- [VERIFY EMAIL CHANGE INITIATED] ---');
-  
-  // 1. Log the raw token received from the URL
-  const rawToken = req.params.token;
-  console.log('Step 1: Raw token from URL params:', rawToken);
-  if (!rawToken) {
-    console.error('FAIL: No token found in URL.');
-    res.status(400);
-    throw new Error('Verification token is missing.');
-  }
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-  // 2. Hash the token
-  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-  console.log('Step 2: Hashed token for DB query:', hashedToken);
-
-  // 3. Find the user with the matching, unexpired token
-  console.log('Step 3: Querying database for user with this hashed token...');
   const user = await User.findOne({
     emailChangeToken: hashedToken,
     emailChangeTokenExpires: { $gt: Date.now() },
   });
 
-  // 4. Check if a user was found
-  if (!user) {
-    console.error('FAIL: No user found with this token or token has expired.');
-    // Check if the token exists at all, even if expired
-    const expiredUser = await User.findOne({ emailChangeToken: hashedToken });
-    if (expiredUser) {
-        console.error('DEBUG: A user was found, but their token has expired. Expiration was:', expiredUser.emailChangeTokenExpires);
-    } else {
-        console.error('DEBUG: No user with this token exists in the database at all.');
-    }
-    res.status(400);
-    throw new Error('Token is invalid, expired, or the process was interrupted.');
-  }
-  console.log(`Step 4: User found successfully! User ID: ${user._id}, Pending new email: ${user.newEmail}`);
-
-  if (!user.newEmail) {
-      console.error(`FAIL: User ${user._id} was found, but they do not have a pending new email address (user.newEmail is empty).`);
-      res.status(400);
-      throw new Error('Token is valid, but the change process was interrupted. Please try again.');
+  if (!user || !user.newEmail) {
+    return res.redirect(`${process.env.FRONTEND_URL}/login?verified=failed`);
   }
 
-  // 5. Security Check for existing email
-  console.log(`Step 5: Checking if the new email "${user.newEmail}" has already been taken...`);
   const emailAlreadyExists = await User.findOne({ email: user.newEmail });
   if (emailAlreadyExists) {
-    console.error(`FAIL: The new email "${user.newEmail}" has been taken by another user since the request was made.`);
-    // Invalidate the token to prevent reuse
     user.newEmail = undefined;
     user.emailChangeToken = undefined;
     user.emailChangeTokenExpires = undefined;
     await user.save({ validateBeforeSave: false });
-    res.status(400);
-    throw new Error('This email address has been taken by another account since your request.');
+    return res.redirect(`${process.env.FRONTEND_URL}/login?verified=failed`);
   }
-  console.log('Step 5: Success! The new email is available.');
 
-  // 6. Try to update the user document
   try {
-    console.log(`Step 6: Attempting to update user ${user._id}'s email to "${user.newEmail}"...`);
     user.email = user.newEmail;
     user.isVerified = true;
     user.newEmail = undefined;
     user.emailChangeToken = undefined;
     user.emailChangeTokenExpires = undefined;
-    
-    const updatedUser = await user.save();
-    console.log('Step 6: Success! User document saved.');
 
-    // 7. Forcibly log out active sessions
-    console.log('Step 7: Checking for active socket connections to force logout...');
+    const updatedUser = await user.save();
+
     if (req.io && req.userSocketMap) {
       const userSocketId = req.userSocketMap.get(updatedUser._id.toString());
       if (userSocketId) {
-        console.log(`Step 7: Found active socket ${userSocketId}. Emitting force-logout.`);
         req.io.to(userSocketId).emit('force-logout', {
           message: 'Your email has been changed. Please log in with your new email address.',
         });
-      } else {
-        console.log('Step 7: No active socket found for this user.');
       }
     }
-
-    // 8. Redirect the user
-    const redirectUrl = `${process.env.FRONTEND_URL}/login?emailChanged=true`;
-    console.log(`Step 8: All steps successful. Redirecting user to: ${redirectUrl}`);
-    res.redirect(redirectUrl);
-
+    res.redirect(`${process.env.FRONTEND_URL}/login?emailChanged=true`);
   } catch (error) {
-    console.error('--- [CRITICAL FAILURE] ---');
-    console.error('FAIL: An error occurred during the final user.save() or redirect step.');
-    console.error('Error Details:', error);
+    console.error('Error finalizing email change:', error);
     res.status(500);
     throw new Error('An error occurred while updating your email. Please try again.');
   }
