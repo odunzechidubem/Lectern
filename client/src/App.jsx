@@ -16,7 +16,6 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import InactivityHandler from './components/InactivityHandler';
 import FullScreenLoader from './components/FullScreenLoader';
-import AuthValidator from './components/AuthValidator';
 
 // --- Route Protection Components ---
 import PrivateRoute from './components/PrivateRoute';
@@ -101,7 +100,6 @@ function App() {
     <Router>
       <ScrollToTop />
       <InactivityHandler />
-      <AuthValidator />
       <div className="flex flex-col min-h-screen">
         <Header />
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
