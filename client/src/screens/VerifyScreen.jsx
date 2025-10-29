@@ -1,7 +1,8 @@
-// /src/screens/VerifyScreen.jsx
+// /client/src/screens/VerifyScreen.jsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axios from 'axios';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
@@ -19,23 +20,22 @@ const VerifyScreen = () => {
     const verifyUserEmail = async () => {
       if (!token) {
         setStatus('error');
-        setErrorMessage('Verification token not found.');
+        setErrorMessage('Verification token not found in the URL.');
         return;
       }
 
       try {
-        // We are using axios here to make a direct call to the backend API.
-        // This will either succeed and redirect, or throw an error.
-        // We don't need to handle the success data, as the backend handles the redirect.
-        await axios.get(`/api/users/verify/${token}`);
+        // This is the crucial API call to your backend's verification endpoint.
+        const response = await axios.get(`/api/users/verify/${token}`);
         
-        // If the backend redirect works, the user's browser will be sent to the login page.
-        // If it fails for some reason (e.g., network issue after backend responds),
-        // we can manually navigate them after a short delay.
+        // On success, update the UI and prepare to redirect.
         setStatus('success');
+        toast.success(response.data.message || 'Email verified successfully!');
+        
+        // After 3 seconds, redirect the user to the login page with the verified flag.
         setTimeout(() => {
             navigate('/login?verified=true');
-        }, 3000); // 3-second delay before manual redirect
+        }, 3000);
 
       } catch (err) {
         setStatus('error');
@@ -47,7 +47,7 @@ const VerifyScreen = () => {
   }, [token, navigate]);
 
   return (
-    <>
+    <Fragment>
       <Meta title="Verifying Email..." />
       <div className="container mx-auto text-center py-20">
         {status === 'verifying' && (
@@ -60,18 +60,19 @@ const VerifyScreen = () => {
         {status === 'success' && (
           <Message variant="success">
             <h1 className="font-bold text-xl mb-2">Verification Successful!</h1>
-            <p>Redirecting you to the login page...</p>
+            <p>You will be redirected to the login page shortly.</p>
           </Message>
         )}
 
         {status === 'error' && (
           <Message variant="error">
             <h1 className="font-bold text-xl mb-2">Verification Failed</h1>
-            <p>{errorMessage}</p>
+            <p className="mb-4">{errorMessage}</p>
+            <Link to="/login" className="font-bold underline">Go to Login</Link>
           </Message>
         )}
       </div>
-    </>
+    </Fragment>
   );
 };
 

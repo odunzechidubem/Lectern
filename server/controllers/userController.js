@@ -8,9 +8,7 @@ import Assignment from '../models/assignmentModel.js';
 import Settings from '../models/settingsModel.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
-import crypto from 'crypto'; 
-
-// All functions remain the same except for registerUser and verifyEmail.
+import crypto from 'crypto';
 
 // ================== REGISTER ==================
 const registerUser = asyncHandler(async (req, res) => {
@@ -21,8 +19,8 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Please fill out all required fields.');
   }
   if (password.length < 8) {
-      res.status(400);
-      throw new Error('Password must be at least 8 characters long.');
+    res.status(400);
+    throw new Error('Password must be at least 8 characters long.');
   }
 
   const settings = await Settings.findOne({ singleton: 'system_settings' });
@@ -49,8 +47,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const verificationToken = user.createVerificationToken();
     await user.save({ validateBeforeSave: false });
 
-    // --- THE FIX ---
-    // The link in the email MUST point to the frontend so the VerifyScreen component can load.
+    // --- THE FIX: Create a link that points to your frontend route ---
     const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
@@ -99,15 +96,10 @@ const verifyEmail = asyncHandler(async (req, res) => {
   user.verificationTokenExpires = undefined;
   await user.save();
 
-  // THIS IS A BACKEND API. It should not redirect.
-  // It should send a success message that the frontend (VerifyScreen) can use.
-  // However, since VerifyScreen doesn't wait for a response and just navigates,
-  // we can simply send a 200 OK.
+  // --- THE FIX: Send a JSON success response, DO NOT REDIRECT ---
   res.status(200).json({ message: 'Email verified successfully.' });
 });
 
-
-// (The rest of the functions: authUser, logoutUser, etc. are included below and are correct)
 // ================== LOGIN ==================
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -199,6 +191,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
+  // This link must point to the frontend
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   const message = `<p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in 10 minutes.</p>`;
 
@@ -338,6 +331,7 @@ const requestEmailChange = asyncHandler(async (req, res) => {
   user.newEmail = newEmail.toLowerCase();
   await user.save({ validateBeforeSave: false });
 
+  // This link must also point to the frontend
   const verifyUrl = `${process.env.FRONTEND_URL}/verify-email-change/${changeToken}`;
   const message = `<p>You requested to change your account's email address. Please confirm by clicking below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
