@@ -1,9 +1,13 @@
+// /server/models/courseModel.js
+
 import mongoose from 'mongoose';
 
 const lectureSchema = mongoose.Schema({
   title: { type: String, required: true },
   videoUrl: { type: String, required: true },
+  videoPublicId: { type: String, required: true }, // <-- ADDED THIS
   notesUrl: { type: String },
+  notesPublicId: { type: String }, // <-- ADDED THIS
 });
 
 const courseSchema = mongoose.Schema(

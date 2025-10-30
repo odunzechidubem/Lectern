@@ -1,3 +1,5 @@
+// /server/models/articleModel.js
+
 import mongoose from 'mongoose';
 
 const articleSchema = new mongoose.Schema(
@@ -5,6 +7,7 @@ const articleSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
     fileUrl: { type: String, required: true },
+    filePublicId: { type: String, required: true }, // <-- ADDED THIS LINE
     publicPages: {
       type: Number,
       required: true,

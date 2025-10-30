@@ -1,12 +1,15 @@
+// /server/controllers/adminController.js
+
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
 import Settings from '../models/settingsModel.js';
 import Course from '../models/courseModel.js';
+import Article from '../models/articleModel.js'; // Import Article model
+import cloudinary from '../config/cloudinary.js';   // Import Cloudinary SDK
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const role = req.query.role ? req.query.role.trim() : null;
 
-  // Add validation for the role parameter
   if (!role) {
     res.status(400);
     throw new Error('Role query parameter is required');
@@ -28,7 +31,6 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error('Cannot disable a super administrator');
     }
-    // Prevent an admin from disabling their own account via this endpoint
     if (user._id.toString() === req.user._id.toString()) {
         res.status(400);
         throw new Error('Administrators cannot change their own status.');
@@ -54,7 +56,6 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Delete a user by ID - THIS FUNCTION IS NOW FIXED
 const deleteUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
@@ -63,12 +64,23 @@ const deleteUserById = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error('Cannot delete a super administrator');
     }
-    // Prevent an admin from deleting their own account
     if (user._id.toString() === req.user._id.toString()) {
         res.status(400);
         throw new Error('Administrators cannot delete their own account.');
     }
 
+    // --- THIS IS THE FIX ---
+    // If the user has a profile image with a public_id, delete it from Cloudinary first.
+    if (user.profileImagePublicId) {
+      try {
+        console.log(`Deleting profile image from Cloudinary: ${user.profileImagePublicId}`);
+        await cloudinary.uploader.destroy(user.profileImagePublicId);
+      } catch (err) {
+        console.error("Failed to delete user profile image from Cloudinary. Continuing with user deletion.", err);
+        // We log the error but don't stop the process.
+      }
+    }
+    
     await user.deleteOne();
     res.status(200).json({ message: 'User deleted successfully' });
   } else {
@@ -80,7 +92,6 @@ const deleteUserById = asyncHandler(async (req, res) => {
 const getSystemSettings = asyncHandler(async (req, res) => {
   let settings = await Settings.findOne({ singleton: 'system_settings' });
   if (!settings) {
-    // If no settings exist, create them with default values
     settings = await Settings.create({
       isStudentRegistrationEnabled: true,
       isLecturerRegistrationEnabled: true,
@@ -90,7 +101,6 @@ const getSystemSettings = asyncHandler(async (req, res) => {
 });
 
 const updateSystemSettings = asyncHandler(async (req, res) => {
-  // Use findOneAndUpdate with upsert:true to handle creation if it doesn't exist
   const settings = await Settings.findOneAndUpdate(
     { singleton: 'system_settings' },
     { $set: req.body },
@@ -105,6 +115,9 @@ const getAllCourses = asyncHandler(async (req, res) => {
 });
 
 const deleteCourseById = asyncHandler(async (req, res) => {
+  // Note: This function only deletes the course record.
+  // A more advanced version would also delete associated lecture videos/notes from Cloudinary.
+  // This requires storing public_ids for those assets as well.
   const course = await Course.findById(req.params.id);
 
   if (course) {
@@ -116,6 +129,28 @@ const deleteCourseById = asyncHandler(async (req, res) => {
   }
 });
 
+// We are adding the logic to delete articles here since the Admin Dashboard handles it.
+const deleteArticleById = asyncHandler(async (req, res) => {
+  const article = await Article.findById(req.params.id);
+  if (article) {
+    // --- THIS IS THE FIX ---
+    // If the article has a file with a public_id, delete it from Cloudinary.
+    if (article.filePublicId) {
+      try {
+        console.log(`Deleting article file from Cloudinary: ${article.filePublicId}`);
+        await cloudinary.uploader.destroy(article.filePublicId, { resource_type: 'raw' }); // Use 'raw' for PDFs
+      } catch (err) {
+        console.error("Failed to delete article PDF from Cloudinary. Continuing with article deletion.", err);
+      }
+    }
+    await article.deleteOne();
+    res.status(200).json({ message: 'Article deleted successfully' });
+  } else {
+    res.status(404);
+    throw new Error('Article not found');
+  }
+});
+
 export {
   getAllUsers,
   toggleUserStatus,
@@ -124,4 +159,5 @@ export {
   updateSystemSettings,
   getAllCourses,
   deleteCourseById,
+  deleteArticleById, // Ensure this is exported to be used in your routes
 };

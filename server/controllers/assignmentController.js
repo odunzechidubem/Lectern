@@ -5,10 +5,11 @@ import Assignment from '../models/assignmentModel.js';
 import Course from '../models/courseModel.js';
 import Submission from '../models/submissionModel.js';
 import Notification from '../models/notificationModel.js';
+import cloudinary from '../config/cloudinary.js';
 
 const createAssignment = asyncHandler(async (req, res) => {
-  const { title, description, dueDate, courseId, instructionFileUrl } = req.body;
-
+  const { title, description, dueDate, courseId, instructionFileUrl, instructionFilePublicId } = req.body;
+  
   if (!title || !dueDate || !courseId) {
     res.status(400);
     throw new Error('Title, due date, and course ID are required.');
@@ -20,7 +21,16 @@ const createAssignment = asyncHandler(async (req, res) => {
     throw new Error('User not authorized');
   }
 
-  const assignment = await Assignment.create({ course: courseId, title, description, dueDate, instructionFileUrl });
+  // --- THIS IS THE FIX ---
+  const assignment = await Assignment.create({ 
+    course: courseId, 
+    title, 
+    description, 
+    dueDate, 
+    instructionFileUrl, 
+    instructionFilePublicId // Save the publicId
+  });
+  
   course.assignments.push(assignment._id);
   await course.save();
 
@@ -39,7 +49,6 @@ const createAssignment = asyncHandler(async (req, res) => {
           io.to(socketId).emit('new_notification_data', notification);
         }
       });
-      console.log(`Created and Pushed ${createdNotifications.length} assignment notifications.`);
     }
   } catch (error) {
     console.error('Failed to create assignment notifications:', error);
@@ -49,7 +58,9 @@ const createAssignment = asyncHandler(async (req, res) => {
 });
 
 const deleteAssignment = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id);
+  const { courseId, assignmentId } = req.body; // Assuming these are passed in the body for mutations
+  const assignment = await Assignment.findById(assignmentId);
+
   if (assignment) {
     const course = await Course.findById(assignment.course);
     if (!course || course.lecturer.toString() !== req.user._id.toString()) {
@@ -57,9 +68,18 @@ const deleteAssignment = asyncHandler(async (req, res) => {
       throw new Error('User not authorized');
     }
 
+    // --- THIS IS THE FIX ---
+    if (assignment.instructionFilePublicId) {
+      try {
+        // Use 'raw' for non-image/video files like PDFs
+        await cloudinary.uploader.destroy(assignment.instructionFilePublicId, { resource_type: 'raw' });
+      } catch (err) {
+        console.error("Failed to delete assignment instruction file from Cloudinary:", err);
+      }
+    }
+
     course.assignments.pull(assignment._id);
     await course.save();
-
     await assignment.deleteOne();
     res.json({ message: 'Assignment deleted' });
   } else {

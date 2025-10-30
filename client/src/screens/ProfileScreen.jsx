@@ -1,3 +1,5 @@
+// /client/src/screens/ProfileScreen.jsx
+
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
@@ -84,8 +86,16 @@ const ProfileScreen = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
+      // The uploadFile mutation hook uses the server-side upload endpoint
       const uploadRes = await uploadFile(formData).unwrap();
-      const updatedUser = await updateProfile({ profileImage: uploadRes.url }).unwrap();
+      
+      // --- THIS IS THE FIX ---
+      // Send both the URL and the new Public ID to be saved in the user profile
+      const updatedUser = await updateProfile({ 
+        profileImage: uploadRes.url,
+        profileImagePublicId: uploadRes.publicId // <-- ADD THIS
+      }).unwrap();
+
       dispatch(setCredentials(updatedUser));
       toast.success('Profile photo updated');
     } catch (err) {

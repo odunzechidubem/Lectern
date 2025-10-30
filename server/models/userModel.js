@@ -1,3 +1,5 @@
+// /server/models/userModel.js
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -5,15 +7,16 @@ import { USER_ROLES } from '../utils/constants.js';
 
 const userSchema = mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true }, // ensure email is stored lowercase
-  password: { type: String, required: true, minlength: 8 }, // Added minlength validation
+  email: { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true, minlength: 8 },
   role: {
     type: String,
     required: true,
-    enum: Object.values(USER_ROLES), // Use constants for enum
+    enum: Object.values(USER_ROLES),
     default: USER_ROLES.STUDENT,
   },
   profileImage: { type: String, required: false, default: '' },
+  profileImagePublicId: { type: String }, // <-- ADDED THIS LINE
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   verificationToken: String,
@@ -28,7 +31,7 @@ const userSchema = mongoose.Schema({
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

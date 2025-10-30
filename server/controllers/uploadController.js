@@ -1,10 +1,9 @@
-// /server/controllers/uploadController.js (Definitive Final Version)
+// /server/controllers/uploadController.js
 
 import asyncHandler from 'express-async-handler';
 import cloudinary from '../config/cloudinary.js';
 
-// This function is for small, server-mediated uploads (profile pics, articles)
-// It will now work correctly because cloudinary is configured on startup.
+// This function handles smaller, server-mediated uploads (profile pics, articles)
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     res.status(400);
@@ -23,10 +22,12 @@ const uploadFile = asyncHandler(async (req, res) => {
       uploadStream.end(req.file.buffer);
     });
 
+    // --- THIS IS THE FIX ---
+    // Return both the secure_url and the public_id
     res.status(201).json({
       message: 'File uploaded successfully',
       url: result.secure_url,
-      public_id: result.public_id,
+      publicId: result.public_id, // <-- ADDED THIS
     });
   } catch (error) {
     res.status(500);
@@ -35,8 +36,7 @@ const uploadFile = asyncHandler(async (req, res) => {
 });
 
 
-// This function is for generating signatures for large, direct client-side uploads.
-// It relies on the startup configuration.
+// This function for generating signatures is unchanged.
 const generateUploadSignature = asyncHandler(async (req, res) => {
   const timestamp = Math.round((new Date).getTime() / 1000);
 
