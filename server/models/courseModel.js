@@ -1,15 +1,14 @@
+// /server/models/courseModel.js
+
 import mongoose from 'mongoose';
 
-// --- THIS IS THE FIX ---
-// The schema for lectures must include fields for the Cloudinary public_ids.
 const lectureSchema = mongoose.Schema({
   title: { type: String, required: true },
   videoUrl: { type: String, required: true },
-  videoPublicId: { type: String, required: true }, // Was missing
+  videoPublicId: { type: String, required: true },
   notesUrl: { type: String },
-  notesPublicId: { type: String }, // Was missing
+  notesPublicId: { type: String },
 });
-// --- END FIX ---
 
 const courseSchema = mongoose.Schema(
   {
@@ -21,7 +20,7 @@ const courseSchema = mongoose.Schema(
       ref: 'User',
       index: true,
     },
-    lectures: [lectureSchema], // This now uses the corrected schema above
+    lectures: [lectureSchema],
     students: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
