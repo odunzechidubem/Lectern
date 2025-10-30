@@ -43,13 +43,13 @@ const CourseEditScreen = () => {
     useGetAnnouncementsForCourseQuery(courseId);
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   const [addLecture, { isLoading: isAddingLecture }] = useAddLectureMutation();
-  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Kept for other potential small uploads
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation();
   const [deleteLecture, { isLoading: isDeletingLecture }] = useDeleteLectureMutation();
   const [createAssignment, { isLoading: isCreatingAssignment }] = useCreateAssignmentMutation();
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
-  const [isUploading, setIsUploading] = useState(false); // Unified state for all upload processes
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -57,7 +57,7 @@ const CourseEditScreen = () => {
       setDescription(course.description);
     }
   }, [course]);
-
+  
   const uploadDirectlyToCloudinary = async (file, toastId, toastMessage) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = 'lms_unsigned_preset';
@@ -78,9 +78,9 @@ const CourseEditScreen = () => {
         }
       }
     });
-    return { url: response.data.secure_url, publicId: response.data.public_id };
+    return response.data; // Return the full response data
   };
-  
+
   const handleUpdateCourse = async (e) => {
     e.preventDefault();
     try {
@@ -101,14 +101,18 @@ const CourseEditScreen = () => {
     const uploadToastId = toast.info('Starting upload...', { autoClose: false, closeButton: false });
 
     try {
-        const { url: videoUrl, publicId: videoPublicId } = await uploadDirectlyToCloudinary(videoFile, uploadToastId, "Uploading video");
+        const videoResponse = await uploadDirectlyToCloudinary(videoFile, uploadToastId, "Uploading video");
+        // --- THIS IS THE FIX ---
+        // Correctly destructure `secure_url` and `public_id` from the Cloudinary response
+        const { secure_url: videoUrl, public_id: videoPublicId } = videoResponse;
         
         let notesUrl = '';
         let notesPublicId = '';
         if (notesFile) {
-            const notesRes = await uploadDirectlyToCloudinary(notesFile, uploadToastId, "Uploading notes");
-            notesUrl = notesRes.url;
-            notesPublicId = notesRes.publicId;
+            const notesResponse = await uploadDirectlyToCloudinary(notesFile, uploadToastId, "Uploading notes");
+            // --- THIS IS THE FIX ---
+            notesUrl = notesResponse.secure_url;
+            notesPublicId = notesResponse.public_id;
         }
 
         toast.update(uploadToastId, { render: 'Saving lecture...' });
@@ -127,14 +131,14 @@ const CourseEditScreen = () => {
     } catch (err) {
         toast.dismiss(uploadToastId);
         console.error('An error occurred during the upload process:', err);
-        const errorMessage = err.response?.data?.error?.message || 'An unknown upload error occurred.';
+        const errorMessage = err.response?.data?.message || 'An unknown upload error occurred.';
         toast.error(`Failed to add lecture: ${errorMessage}`);
     } finally {
         setIsUploading(false);
     }
   };
 
-  const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure you want to delete this lecture?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
+  const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   
   const handleCreateAssignment = async (e) => {
     e.preventDefault();
@@ -148,9 +152,10 @@ const CourseEditScreen = () => {
       let instructionFilePublicId = '';
       if (assignmentFile) {
         toast.update(uploadToastId, { render: 'Uploading instruction file...' });
+        // --- THIS IS THE FIX ---
         const fileRes = await uploadDirectlyToCloudinary(assignmentFile, uploadToastId, "Uploading file");
-        instructionFileUrl = fileRes.url;
-        instructionFilePublicId = fileRes.publicId;
+        instructionFileUrl = fileRes.secure_url;
+        instructionFilePublicId = fileRes.public_id;
       }
       
       toast.update(uploadToastId, { render: 'Saving assignment...' });
@@ -171,7 +176,7 @@ const CourseEditScreen = () => {
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId) => { if (window.confirm('Are you sure you want to delete this assignment?')) { try { await deleteAssignment({ courseId, assignmentId }).unwrap(); toast.success('Assignment deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
+  const handleDeleteAssignment = async (assignmentId) => { if (window.confirm('Are you sure?')) { try { await deleteAssignment({ courseId, assignmentId }).unwrap(); toast.success('Assignment deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
   const handleCreateAnnouncement = async (e) => { e.preventDefault(); if (!announcementContent) { return toast.error('Announcement content cannot be empty.'); } try { await createAnnouncement({ courseId, content: announcementContent }).unwrap(); toast.success('Announcement posted'); setAnnouncementContent(''); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } };
   const handleDeleteAnnouncement = async (announcementId) => { if (window.confirm('Are you sure?')) { try { await deleteAnnouncement(announcementId).unwrap(); toast.success('Announcement deleted'); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
 
@@ -308,7 +313,7 @@ const CourseEditScreen = () => {
                                 <div className="flex items-center space-x-2">
                                     {ass.instructionFileUrl && (<a href={ass.instructionFileUrl} target="_blank" rel="noopener noreferrer" className="p-2 text-sm text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="View Instructions"><FaFilePdf /></a>)}
                                     <Link to={`/lecturer/course/${courseId}/assignment/${ass._id}/submissions`} className="p-2 text-sm text-green-500 rounded-full hover:text-green-700 hover:bg-green-100" title="View Submissions"><FaEye /></Link>
-                                    <button onClick={() => handleDeleteAssignment(ass._id)} disabled={isDeletingAssignment} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Assignment"><FaTrash /></button>
+                                    <button onClick={() => handleDeleteAssignment({ courseId, assignmentId: ass._id })} disabled={isDeletingAssignment} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Assignment"><FaTrash /></button>
                                 </div>
                             </li>
                         ))}
