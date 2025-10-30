@@ -73,7 +73,7 @@ const LoginScreen = () => {
     <>
       <Meta title="Lectern | Sign in" description="Sign in to your Lectern account" />
       <div className="flex justify-center">
-        <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
+        <form className="w-full max-w-md p-8 mt-0 bg-white rounded shadow-md dark:bg-gray-800" onSubmit={submitHandler}>
 
           {/* --- THE FIX: Display contextual messages at the top of the form --- */}
           {fromRegistration && (

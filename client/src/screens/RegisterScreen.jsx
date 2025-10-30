@@ -70,7 +70,7 @@ const RegisterScreen = () => {
     <>
       <Meta title="Lectern | Register" description="Create a Lectern account to start learning" />
       <div className="flex justify-center">
-        <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
+        <form className="w-96 p-8 mt-0 bg-white rounded shadow-md" onSubmit={submitHandler}>
           <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign Up</h1>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2" htmlFor="name">Name</label>

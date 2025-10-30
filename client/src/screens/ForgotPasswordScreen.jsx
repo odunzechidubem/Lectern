@@ -39,7 +39,7 @@ const ForgotPasswordScreen = () => {
     <>
       <Meta title="Lectern | Forgot Password" description="Reset your Lectern account password" />
       <div className="flex justify-center">
-        <form className="w-96 p-8 mt-10 bg-white rounded shadow-md" onSubmit={submitHandler}>
+        <form className="w-96 p-8 mt-0 bg-white rounded shadow-md" onSubmit={submitHandler}>
           <h1 className="mb-4 text-2xl font-bold text-gray-700">Forgot Password</h1>
           <p className="mb-6 text-sm text-gray-600">Enter your email and we'll send a reset link.</p>
           <div className="mb-4">
