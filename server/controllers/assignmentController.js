@@ -21,16 +21,7 @@ const createAssignment = asyncHandler(async (req, res) => {
     throw new Error('User not authorized');
   }
 
-  // --- THIS IS THE FIX ---
-  const assignment = await Assignment.create({ 
-    course: courseId, 
-    title, 
-    description, 
-    dueDate, 
-    instructionFileUrl, 
-    instructionFilePublicId // Save the publicId
-  });
-  
+  const assignment = await Assignment.create({ course: courseId, title, description, dueDate, instructionFileUrl, instructionFilePublicId });
   course.assignments.push(assignment._id);
   await course.save();
 
@@ -38,11 +29,9 @@ const createAssignment = asyncHandler(async (req, res) => {
     const message = `A new assignment "${title}" was added to the course "${course.title}".`;
     const link = `/course/${course._id}/assignment/${assignment._id}`;
     const notificationDocs = course.students.map(studentId => ({ user: studentId, message, link }));
-
     if (notificationDocs.length > 0) {
       const createdNotifications = await Notification.insertMany(notificationDocs);
       const { io, userSocketMap } = req;
-      
       createdNotifications.forEach(notification => {
         const socketId = userSocketMap.get(notification.user.toString());
         if (socketId) {
@@ -58,7 +47,7 @@ const createAssignment = asyncHandler(async (req, res) => {
 });
 
 const deleteAssignment = asyncHandler(async (req, res) => {
-  const { courseId, assignmentId } = req.body; // Assuming these are passed in the body for mutations
+  const { assignmentId } = req.body;
   const assignment = await Assignment.findById(assignmentId);
 
   if (assignment) {
@@ -71,7 +60,6 @@ const deleteAssignment = asyncHandler(async (req, res) => {
     // --- THIS IS THE FIX ---
     if (assignment.instructionFilePublicId) {
       try {
-        // Use 'raw' for non-image/video files like PDFs
         await cloudinary.uploader.destroy(assignment.instructionFilePublicId, { resource_type: 'raw' });
       } catch (err) {
         console.error("Failed to delete assignment instruction file from Cloudinary:", err);
