@@ -1,4 +1,4 @@
-// /server/controllers/courseController.js (Definitive Final Version)
+// /server/controllers/courseController.js
 
 import asyncHandler from 'express-async-handler';
 import Course from '../models/courseModel.js';
@@ -7,14 +7,12 @@ import Assignment from '../models/assignmentModel.js';
 import Notification from '../models/notificationModel.js';
 import cloudinary from '../config/cloudinary.js';
 
-// @desc Get all courses
 const getCourses = asyncHandler(async (req, res) => {
   const keyword = req.query.keyword ? { title: { $regex: req.query.keyword, $options: 'i' } } : {};
   const courses = await Course.find({ ...keyword }).populate('lecturer', 'name email');
   res.json(courses);
 });
 
-// @desc Get a single course by ID
 const getCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id).populate('students', 'name email').populate('assignments');
   if (course) {
@@ -28,13 +26,11 @@ const getCourseById = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Get a lecturer's own courses
 const getMyCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({ lecturer: req.user._id });
   res.json(courses);
 });
 
-// @desc Create a new course
 const createCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   if (!title || !title.trim() || !description || !description.trim()) {
@@ -45,7 +41,6 @@ const createCourse = asyncHandler(async (req, res) => {
   res.status(201).json(createdCourse);
 });
 
-// @desc Update a course
 const updateCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   const course = await Course.findById(req.params.id);
@@ -62,7 +57,6 @@ const updateCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Add a lecture to a course
 const addLectureToCourse = asyncHandler(async (req, res) => {
   const { title, videoUrl, videoPublicId, notesUrl, notesPublicId } = req.body;
   const course = await Course.findById(req.params.id);
@@ -98,7 +92,6 @@ const addLectureToCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Delete a lecture from a course
 const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   const { courseId, lectureId } = req.params;
   const course = await Course.findById(courseId);
@@ -112,16 +105,15 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   if (!lecture) { res.status(404); throw new Error('Lecture not found'); }
 
   // --- THIS IS THE DEFINITIVE FIX ---
-  // Step 1: Securely copy the IDs you need BEFORE modifying anything.
+  // Step 1: Securely copy the IDs before modifying anything.
   const videoPublicId = lecture.videoPublicId;
   const notesPublicId = lecture.notesPublicId;
 
-  // Step 2: Perform all database modifications first.
+  // Step 2: Perform the database modification.
   course.lectures.pull(lectureId);
   await course.save();
 
-  // Step 3: Perform all external API calls (Cloudinary) last.
-  // This is safer. Even if these fail, the lecture is gone from our DB.
+  // Step 3: Perform external API calls after the database is successfully updated.
   const deletionPromises = [];
   if (videoPublicId) {
     deletionPromises.push(cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }));
@@ -131,17 +123,16 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   }
   
   try {
-    await Promise.all(deletionPromises);
+    if (deletionPromises.length > 0) {
+      await Promise.all(deletionPromises);
+    }
   } catch (err) {
-    // Log the error but don't fail the request, as the DB operation was successful.
     console.error("A non-critical error occurred during Cloudinary asset deletion:", err);
   }
   
   res.json({ message: 'Lecture deleted' });
 });
 
-
-// @desc Delete a course
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -180,7 +171,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Enroll a student in a course
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {

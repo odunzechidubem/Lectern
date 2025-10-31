@@ -29,6 +29,7 @@ const createAssignment = asyncHandler(async (req, res) => {
     const message = `A new assignment "${title}" was added to the course "${course.title}".`;
     const link = `/course/${course._id}/assignment/${assignment._id}`;
     const notificationDocs = course.students.map(studentId => ({ user: studentId, message, link }));
+
     if (notificationDocs.length > 0) {
       const createdNotifications = await Notification.insertMany(notificationDocs);
       const { io, userSocketMap } = req;
@@ -47,7 +48,8 @@ const createAssignment = asyncHandler(async (req, res) => {
 });
 
 const deleteAssignment = asyncHandler(async (req, res) => {
-  const { assignmentId } = req.body;
+  // Assuming the frontend sends courseId and assignmentId in the request body
+  const { courseId, assignmentId } = req.body; 
   const assignment = await Assignment.findById(assignmentId);
 
   if (assignment) {
@@ -58,17 +60,23 @@ const deleteAssignment = asyncHandler(async (req, res) => {
     }
 
     // --- THIS IS THE FIX ---
-    if (assignment.instructionFilePublicId) {
+    // Step 1: Securely copy the publicId before modifying anything.
+    const publicId = assignment.instructionFilePublicId;
+
+    // Step 2: Perform database modifications.
+    course.assignments.pull(assignment._id);
+    await course.save();
+    await assignment.deleteOne();
+
+    // Step 3: Perform external API call last.
+    if (publicId) {
       try {
-        await cloudinary.uploader.destroy(assignment.instructionFilePublicId, { resource_type: 'raw' });
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
       } catch (err) {
         console.error("Failed to delete assignment instruction file from Cloudinary:", err);
       }
     }
-
-    course.assignments.pull(assignment._id);
-    await course.save();
-    await assignment.deleteOne();
+    
     res.json({ message: 'Assignment deleted' });
   } else {
     res.status(404);
