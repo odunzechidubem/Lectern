@@ -1,4 +1,4 @@
-// /src/screens/CourseEditScreen.jsx
+// /client/src/screens/CourseEditScreen.jsx
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -43,13 +43,13 @@ const CourseEditScreen = () => {
     useGetAnnouncementsForCourseQuery(courseId);
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   const [addLecture, { isLoading: isAddingLecture }] = useAddLectureMutation();
-  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Kept for other potential small uploads
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation();
   const [deleteLecture, { isLoading: isDeletingLecture }] = useDeleteLectureMutation();
   const [createAssignment, { isLoading: isCreatingAssignment }] = useCreateAssignmentMutation();
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
-  const [isUploading, setIsUploading] = useState(false); // Unified state for all upload processes
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -57,22 +57,19 @@ const CourseEditScreen = () => {
       setDescription(course.description);
     }
   }, [course]);
-
-  // Helper for direct-to-Cloudinary (unsigned) uploads
+  
   const uploadDirectlyToCloudinary = async (file, resourceType, toastId, toastMessage) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = 'lms_unsigned_preset'; // The preset name you created in Cloudinary
-    if (!cloudName) {
-      throw new Error("Cloudinary cloud name is not configured on the frontend.");
-    }
+    const uploadPreset = 'lms_unsigned_preset';
+    if (!cloudName) throw new Error("Cloudinary cloud name is not configured on the frontend.");
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
     formData.append('folder', 'lms_uploads');
-
+    
     const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-
+    
     const response = await axios.post(cloudinaryUrl, formData, {
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
@@ -84,7 +81,6 @@ const CourseEditScreen = () => {
     return response.data;
   };
 
-  // Handler for updating course details
   const handleUpdateCourse = async (e) => {
     e.preventDefault();
     try {
@@ -95,55 +91,50 @@ const CourseEditScreen = () => {
     }
   };
 
-  // NEW Handler for adding lectures with direct-to-Cloudinary upload
   const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!lectureTitle || !videoFile) {
-      return toast.error('Lecture title and video file are required.');
+        return toast.error('Lecture title and video file are required.');
     }
 
     setIsUploading(true);
     const uploadToastId = toast.info('Starting upload...', { autoClose: false, closeButton: false });
 
     try {
-      // Step 1: Upload video, explicitly setting resource_type to 'video'
-      const videoResponse = await uploadDirectlyToCloudinary(videoFile, 'video', uploadToastId, "Uploading video");
-      const { secure_url: videoUrl, public_id: videoPublicId } = videoResponse;
+        const videoResponse = await uploadDirectlyToCloudinary(videoFile, 'video', uploadToastId, "Uploading video");
+        const { secure_url: videoUrl, public_id: videoPublicId } = videoResponse;
+        
+        let notesUrl = '';
+        let notesPublicId = '';
+        if (notesFile) {
+            const notesResponse = await uploadDirectlyToCloudinary(notesFile, 'raw', uploadToastId, "Uploading notes");
+            notesUrl = notesResponse.secure_url;
+            notesPublicId = notesResponse.public_id;
+        }
 
-      let notesUrl = '';
-      let notesPublicId = '';
-      if (notesFile) {
-        // Step 2: Upload notes, explicitly setting resource_type to 'raw'
-        const notesResponse = await uploadDirectlyToCloudinary(notesFile, 'raw', uploadToastId, "Uploading notes");
-        notesUrl = notesResponse.secure_url;
-        notesPublicId = notesResponse.public_id;
-      }
+        toast.update(uploadToastId, { render: 'Saving lecture...' });
+        await addLecture({ courseId, title: lectureTitle, videoUrl, videoPublicId, notesUrl, notesPublicId }).unwrap();
+        
+        toast.dismiss(uploadToastId);
+        toast.success('Lecture added successfully!');
 
-      toast.update(uploadToastId, { render: 'Saving lecture...' });
-      // Step 3: Save URLs and Public IDs to your database
-      await addLecture({ courseId, title: lectureTitle, videoUrl, videoPublicId, notesUrl, notesPublicId }).unwrap();
-
-      toast.dismiss(uploadToastId);
-      toast.success('Lecture added successfully!');
-
-      // Step 4: Reset form
-      refetch();
-      setLectureTitle('');
-      setVideoFile(null);
-      setNotesFile(null);
-      document.getElementById('videoFile').value = null;
-      if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
+        refetch();
+        setLectureTitle('');
+        setVideoFile(null);
+        setNotesFile(null);
+        document.getElementById('videoFile').value = null;
+        if (document.getElementById('notesFile')) document.getElementById('notesFile').value = null;
 
     } catch (err) {
-      toast.dismiss(uploadToastId);
-      console.error('An error occurred during the upload process:', err);
-      const errorMessage = err.response?.data?.message || 'An unknown upload error occurred.';
-      toast.error(`Failed to add lecture: ${errorMessage}`);
+        toast.dismiss(uploadToastId);
+        console.error('An error occurred during the upload process:', err);
+        const errorMessage = err.response?.data?.message || 'An unknown upload error occurred.';
+        toast.error(`Failed to add lecture: ${errorMessage}`);
     } finally {
-      setIsUploading(false);
+        setIsUploading(false);
     }
   };
-
+  
   const handleDeleteLecture = async (lecture) => {
     if (window.confirm('Are you sure you want to delete this lecture?')) {
       try {
@@ -160,11 +151,11 @@ const CourseEditScreen = () => {
       }
     }
   };
-
+  
   const handleCreateAssignment = async (e) => {
     e.preventDefault();
     if (!assignmentTitle || !assignmentDueDate) { return toast.error('Assignment title and due date are required.'); }
-
+    
     setIsUploading(true);
     const uploadToastId = toast.info('Processing request...', { autoClose: false, closeButton: false });
 
@@ -177,15 +168,15 @@ const CourseEditScreen = () => {
         instructionFileUrl = fileRes.secure_url;
         instructionFilePublicId = fileRes.public_id;
       }
-
+      
       toast.update(uploadToastId, { render: 'Saving assignment...' });
       await createAssignment({ courseId, title: assignmentTitle, description: assignmentDesc, dueDate: assignmentDueDate, instructionFileUrl, instructionFilePublicId }).unwrap();
-
+      
       toast.dismiss(uploadToastId);
       toast.success('Assignment created');
       refetch();
       setAssignmentTitle(''); setAssignmentDesc(''); setAssignmentDueDate(''); setAssignmentFile(null);
-      if (document.getElementById('assignmentFile')) document.getElementById('assignmentFile').value = null;
+      if(document.getElementById('assignmentFile')) document.getElementById('assignmentFile').value = null;
 
     } catch (err) {
       toast.dismiss(uploadToastId);
@@ -196,7 +187,20 @@ const CourseEditScreen = () => {
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId) => { if (window.confirm('Are you sure?')) { try { await deleteAssignment({ courseId, assignmentId }).unwrap(); toast.success('Assignment deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
+  // --- THIS IS THE FIX ---
+  const handleDeleteAssignment = async (assignmentId) => {
+    if (window.confirm('Are you sure you want to delete this assignment?')) {
+      try {
+        // Pass both the courseId and assignmentId to the mutation
+        await deleteAssignment({ courseId, assignmentId }).unwrap();
+        toast.success('Assignment deleted');
+        refetch();
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete assignment.');
+      }
+    }
+  };
+
   const handleCreateAnnouncement = async (e) => { e.preventDefault(); if (!announcementContent) { return toast.error('Announcement content cannot be empty.'); } try { await createAnnouncement({ courseId, content: announcementContent }).unwrap(); toast.success('Announcement posted'); setAnnouncementContent(''); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } };
   const handleDeleteAnnouncement = async (announcementId) => { if (window.confirm('Are you sure?')) { try { await deleteAnnouncement(announcementId).unwrap(); toast.success('Announcement deleted'); refetchAnnouncements(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
 
@@ -226,7 +230,6 @@ const CourseEditScreen = () => {
                 </button>
               </form>
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Manage Announcements</h2>
                 <form onSubmit={handleCreateAnnouncement} className="pb-6 mb-6 border-b">
@@ -251,7 +254,6 @@ const CourseEditScreen = () => {
                     ) : <Message>No announcements posted yet.</Message>
                 )}
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Enrolled Students</h2>
                 {course?.students?.length > 0 ? (
@@ -269,7 +271,6 @@ const CourseEditScreen = () => {
                 ) : <Message>No students have enrolled yet.</Message>}
             </div>
           </div>
-
           {/* --- RIGHT COLUMN --- */}
           <div className="space-y-6">
             <div className="p-6 bg-white rounded-lg shadow-md">
@@ -292,7 +293,6 @@ const CourseEditScreen = () => {
                 </button>
               </form>
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
               <h2 className="mb-4 text-2xl font-bold">Existing Lectures</h2>
               {course?.lectures?.length > 0 ? (
@@ -302,15 +302,12 @@ const CourseEditScreen = () => {
                       <div className="flex items-center">
                         <FaPlayCircle className="mr-3 text-blue-500" />{lec.title}
                       </div>
-                      <button onClick={() => handleDeleteLecture(lec)} disabled={isDeletingLecture} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Lecture">
-                        <FaTrash />
-                      </button>
+                      <button onClick={() => handleDeleteLecture(lec)} disabled={isDeletingLecture} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Lecture"><FaTrash /></button>
                     </li>
                   ))}
                 </ul>
               ) : <Message>No lectures yet.</Message>}
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Manage Assignments</h2>
                 <form onSubmit={handleCreateAssignment} className="pb-6 mb-6 border-b">

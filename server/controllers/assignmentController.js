@@ -21,7 +21,15 @@ const createAssignment = asyncHandler(async (req, res) => {
     throw new Error('User not authorized');
   }
 
-  const assignment = await Assignment.create({ course: courseId, title, description, dueDate, instructionFileUrl, instructionFilePublicId });
+  const assignment = await Assignment.create({ 
+    course: courseId, 
+    title, 
+    description, 
+    dueDate, 
+    instructionFileUrl, 
+    instructionFilePublicId
+  });
+  
   course.assignments.push(assignment._id);
   await course.save();
 
@@ -33,6 +41,7 @@ const createAssignment = asyncHandler(async (req, res) => {
     if (notificationDocs.length > 0) {
       const createdNotifications = await Notification.insertMany(notificationDocs);
       const { io, userSocketMap } = req;
+      
       createdNotifications.forEach(notification => {
         const socketId = userSocketMap.get(notification.user.toString());
         if (socketId) {
@@ -48,35 +57,34 @@ const createAssignment = asyncHandler(async (req, res) => {
 });
 
 const deleteAssignment = asyncHandler(async (req, res) => {
-  // Assuming the frontend sends courseId and assignmentId in the request body
-  const { courseId, assignmentId } = req.body; 
+  // --- THIS IS THE FIX ---
+  // Get the IDs from the URL parameters as defined by the route.
+  const { courseId, assignmentId } = req.params; 
   const assignment = await Assignment.findById(assignmentId);
 
   if (assignment) {
-    const course = await Course.findById(assignment.course);
+    // Verify the assignment belongs to the correct course and user
+    if (assignment.course.toString() !== courseId) {
+        res.status(400);
+        throw new Error('Assignment does not belong to this course.');
+    }
+    const course = await Course.findById(courseId);
     if (!course || course.lecturer.toString() !== req.user._id.toString()) {
       res.status(403);
       throw new Error('User not authorized');
     }
 
-    // --- THIS IS THE FIX ---
-    // Step 1: Securely copy the publicId before modifying anything.
-    const publicId = assignment.instructionFilePublicId;
-
-    // Step 2: Perform database modifications.
-    course.assignments.pull(assignment._id);
-    await course.save();
-    await assignment.deleteOne();
-
-    // Step 3: Perform external API call last.
-    if (publicId) {
+    if (assignment.instructionFilePublicId) {
       try {
-        await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+        await cloudinary.uploader.destroy(assignment.instructionFilePublicId, { resource_type: 'raw' });
       } catch (err) {
         console.error("Failed to delete assignment instruction file from Cloudinary:", err);
       }
     }
-    
+
+    course.assignments.pull(assignment._id);
+    await course.save();
+    await assignment.deleteOne();
     res.json({ message: 'Assignment deleted' });
   } else {
     res.status(404);
