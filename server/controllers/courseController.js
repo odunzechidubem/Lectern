@@ -7,12 +7,14 @@ import Assignment from '../models/assignmentModel.js';
 import Notification from '../models/notificationModel.js';
 import cloudinary from '../config/cloudinary.js';
 
+// @desc Get all courses
 const getCourses = asyncHandler(async (req, res) => {
   const keyword = req.query.keyword ? { title: { $regex: req.query.keyword, $options: 'i' } } : {};
   const courses = await Course.find({ ...keyword }).populate('lecturer', 'name email');
   res.json(courses);
 });
 
+// @desc Get a single course by ID
 const getCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id).populate('students', 'name email').populate('assignments');
   if (course) {
@@ -26,11 +28,13 @@ const getCourseById = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Get a lecturer's own courses
 const getMyCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({ lecturer: req.user._id });
   res.json(courses);
 });
 
+// @desc Create a new course
 const createCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   if (!title || !title.trim() || !description || !description.trim()) {
@@ -41,6 +45,7 @@ const createCourse = asyncHandler(async (req, res) => {
   res.status(201).json(createdCourse);
 });
 
+// @desc Update a course
 const updateCourse = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   const course = await Course.findById(req.params.id);
@@ -57,6 +62,7 @@ const updateCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Add a lecture to a course
 const addLectureToCourse = asyncHandler(async (req, res) => {
   const { title, videoUrl, videoPublicId, notesUrl, notesPublicId } = req.body;
   const course = await Course.findById(req.params.id);
@@ -92,37 +98,50 @@ const addLectureToCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Delete a lecture from a course
 const deleteLectureFromCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findById(req.params.courseId);
+  const { courseId, lectureId } = req.params;
+  const course = await Course.findById(courseId);
+  
   if (!course) { res.status(404); throw new Error('Course not found'); }
   if (course.lecturer.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('Not authorized');
   }
 
-  const lecture = course.lectures.id(req.params.lectureId);
+  const lecture = course.lectures.id(lectureId);
   if (!lecture) { res.status(404); throw new Error('Lecture not found'); }
 
-  // --- THIS IS THE FIX ---
-  // Delete video from Cloudinary, specifying its resource type
-  if (lecture.videoPublicId) {
-    try { 
-      await cloudinary.uploader.destroy(lecture.videoPublicId, { resource_type: 'video' }); 
-    } catch (err) { console.error("Failed to delete lecture video:", err); }
+  // --- THIS IS THE DEFINITIVE FIX ---
+  // Step 1: Securely copy the IDs you need BEFORE modifying anything.
+  const videoPublicId = lecture.videoPublicId;
+  const notesPublicId = lecture.notesPublicId;
+
+  // Step 2: Perform all database modifications first.
+  course.lectures.pull(lectureId);
+  await course.save();
+
+  // Step 3: Perform all external API calls (Cloudinary) last.
+  // This is safer. Even if these fail, the lecture is gone from our DB.
+  const deletionPromises = [];
+  if (videoPublicId) {
+    deletionPromises.push(cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }));
   }
-  // Delete notes from Cloudinary, specifying its resource type as 'raw' for PDFs/files
-  if (lecture.notesPublicId) {
-    try { 
-      await cloudinary.uploader.destroy(lecture.notesPublicId, { resource_type: 'raw' }); 
-    } catch (err) { console.error("Failed to delete lecture notes:", err); }
+  if (notesPublicId) {
+    deletionPromises.push(cloudinary.uploader.destroy(notesPublicId, { resource_type: 'raw' }));
   }
   
-  // Use .pull() to remove the subdocument from the array.
-  course.lectures.pull(lecture._id); 
-
-  await course.save();
+  try {
+    await Promise.all(deletionPromises);
+  } catch (err) {
+    // Log the error but don't fail the request, as the DB operation was successful.
+    console.error("A non-critical error occurred during Cloudinary asset deletion:", err);
+  }
+  
   res.json({ message: 'Lecture deleted' });
 });
 
+
+// @desc Delete a course
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -130,7 +149,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
       res.status(403); throw new Error('Not authorized');
     }
 
-    // --- THIS IS THE FIX ---
     const publicIdsToDelete = [];
     course.lectures.forEach(lecture => {
       if (lecture.videoPublicId) publicIdsToDelete.push({ id: lecture.videoPublicId, type: 'video' });
@@ -145,7 +163,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
     });
 
     if (publicIdsToDelete.length > 0) {
-      console.log(`Deleting ${publicIdsToDelete.length} assets from Cloudinary for course ${course.title}.`);
       try {
         await Promise.all(publicIdsToDelete.map(asset => 
           cloudinary.uploader.destroy(asset.id, { resource_type: asset.type })
@@ -163,6 +180,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Enroll a student in a course
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
