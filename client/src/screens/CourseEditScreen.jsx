@@ -36,6 +36,7 @@ const CourseEditScreen = () => {
   const [assignmentDueDate, setAssignmentDueDate] = useState('');
   const [assignmentFile, setAssignmentFile] = useState(null);
   const [announcementContent, setAnnouncementContent] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   // API Hooks
   const { data: course, isLoading, refetch, error } = useGetCourseDetailsQuery(courseId);
@@ -49,7 +50,6 @@ const CourseEditScreen = () => {
   const [deleteAssignment, { isLoading: isDeletingAssignment }] = useDeleteAssignmentMutation();
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] = useCreateAnnouncementMutation();
   const [deleteAnnouncement, { isLoading: isDeletingAnnouncement }] = useDeleteAnnouncementMutation();
-  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -57,7 +57,7 @@ const CourseEditScreen = () => {
       setDescription(course.description);
     }
   }, [course]);
-  
+
   const uploadDirectlyToCloudinary = async (file, toastId, toastMessage) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = 'lms_unsigned_preset';
@@ -78,9 +78,9 @@ const CourseEditScreen = () => {
         }
       }
     });
-    return response.data; // Return the full response data
+    return response.data;
   };
-
+  
   const handleUpdateCourse = async (e) => {
     e.preventDefault();
     try {
@@ -102,15 +102,12 @@ const CourseEditScreen = () => {
 
     try {
         const videoResponse = await uploadDirectlyToCloudinary(videoFile, uploadToastId, "Uploading video");
-        // --- THIS IS THE FIX ---
-        // Correctly destructure `secure_url` and `public_id` from the Cloudinary response
         const { secure_url: videoUrl, public_id: videoPublicId } = videoResponse;
         
         let notesUrl = '';
         let notesPublicId = '';
         if (notesFile) {
             const notesResponse = await uploadDirectlyToCloudinary(notesFile, uploadToastId, "Uploading notes");
-            // --- THIS IS THE FIX ---
             notesUrl = notesResponse.secure_url;
             notesPublicId = notesResponse.public_id;
         }
@@ -138,8 +135,25 @@ const CourseEditScreen = () => {
     }
   };
 
-  const handleDeleteLecture = async (lectureId) => { if (window.confirm('Are you sure?')) { try { await deleteLecture({ courseId, lectureId }).unwrap(); toast.success('Lecture deleted'); refetch(); } catch (err) { toast.error(err?.data?.message || err.error); } } };
-  
+  // --- THIS IS THE FIX ---
+  // The frontend now gathers all necessary IDs and sends them to the backend.
+  const handleDeleteLecture = async (lecture) => {
+    if (window.confirm('Are you sure you want to delete this lecture?')) {
+      try {
+        await deleteLecture({
+          courseId,
+          lectureId: lecture._id,
+          videoPublicId: lecture.videoPublicId,
+          notesPublicId: lecture.notesPublicId,
+        }).unwrap();
+        toast.success('Lecture deleted successfully');
+        refetch();
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete lecture.');
+      }
+    }
+  };
+
   const handleCreateAssignment = async (e) => {
     e.preventDefault();
     if (!assignmentTitle || !assignmentDueDate) { return toast.error('Assignment title and due date are required.'); }
@@ -152,7 +166,6 @@ const CourseEditScreen = () => {
       let instructionFilePublicId = '';
       if (assignmentFile) {
         toast.update(uploadToastId, { render: 'Uploading instruction file...' });
-        // --- THIS IS THE FIX ---
         const fileRes = await uploadDirectlyToCloudinary(assignmentFile, uploadToastId, "Uploading file");
         instructionFileUrl = fileRes.secure_url;
         instructionFilePublicId = fileRes.public_id;
@@ -206,7 +219,6 @@ const CourseEditScreen = () => {
                 </button>
               </form>
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Manage Announcements</h2>
                 <form onSubmit={handleCreateAnnouncement} className="pb-6 mb-6 border-b">
@@ -231,7 +243,6 @@ const CourseEditScreen = () => {
                     ) : <Message>No announcements posted yet.</Message>
                 )}
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Enrolled Students</h2>
                 {course?.students?.length > 0 ? (
@@ -249,7 +260,6 @@ const CourseEditScreen = () => {
                 ) : <Message>No students have enrolled yet.</Message>}
             </div>
           </div>
-
           {/* --- RIGHT COLUMN --- */}
           <div className="space-y-6">
             <div className="p-6 bg-white rounded-lg shadow-md">
@@ -272,7 +282,6 @@ const CourseEditScreen = () => {
                 </button>
               </form>
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
               <h2 className="mb-4 text-2xl font-bold">Existing Lectures</h2>
               {course?.lectures?.length > 0 ? (
@@ -282,7 +291,7 @@ const CourseEditScreen = () => {
                       <div className="flex items-center">
                         <FaPlayCircle className="mr-3 text-blue-500" />{lec.title}
                       </div>
-                      <button onClick={() => handleDeleteLecture(lec._id)} disabled={isDeletingLecture} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Lecture">
+                      <button onClick={() => handleDeleteLecture(lec)} disabled={isDeletingLecture} className="p-2 text-red-500 rounded-full hover:text-red-700 hover:bg-red-100" title="Delete Lecture">
                         <FaTrash />
                       </button>
                     </li>
@@ -290,7 +299,6 @@ const CourseEditScreen = () => {
                 </ul>
               ) : <Message>No lectures yet.</Message>}
             </div>
-
             <div className="p-6 bg-white rounded-lg shadow-md">
                 <h2 className="mb-4 text-2xl font-bold">Manage Assignments</h2>
                 <form onSubmit={handleCreateAssignment} className="pb-6 mb-6 border-b">

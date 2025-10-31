@@ -1,3 +1,5 @@
+// /client/src/slices/coursesApiSlice.js
+
 import { apiSlice } from './apiSlice';
 
 const COURSES_URL = '/api/courses';
@@ -53,13 +55,21 @@ export const coursesApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Course', id: arg }],
     }),
+
+    // --- THIS IS THE FIX ---
     deleteLecture: builder.mutation({
       query: (data) => ({
         url: `${COURSES_URL}/${data.courseId}/lectures/${data.lectureId}`,
         method: 'DELETE',
+        // The body now contains the public IDs for the backend to use.
+        body: {
+          videoPublicId: data.videoPublicId,
+          notesPublicId: data.notesPublicId,
+        }
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Course', id: arg.courseId }],
     }),
+
     deleteCourse: builder.mutation({
       query: (courseId) => ({
         url: `${COURSES_URL}/${courseId}`,
