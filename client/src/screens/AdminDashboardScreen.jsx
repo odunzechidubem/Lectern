@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import axios from 'axios'; // <-- ADDED
 import {
   useGetUsersByRoleQuery,
   useToggleUserStatusMutation,
@@ -39,7 +40,6 @@ import {
   FaFileAlt,
 } from 'react-icons/fa';
 
-// --- Main Admin Dashboard Component ---
 const AdminDashboardScreen = () => {
   const [activeTab, setActiveTab] = useState('userManagement');
   const [activeUserTab, setActiveUserTab] = useState('lecturers');
@@ -52,7 +52,7 @@ const AdminDashboardScreen = () => {
   const [deleteCourseById, { isLoading: isDeletingCourse }] = useDeleteCourseByIdMutation();
   const { data: settings, isLoading: isLoadingSettings, refetch: refetchSettings } = useGetSettingsQuery();
   const [updateSystemSettings, { isLoading: isUpdatingSettings }] = useUpdateSettingsMutation();
-  const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Renamed for clarity
   const { data: links, isLoading: isLoadingLinks, error: linksError, refetch: refetchLinks } = useGetFooterLinksQuery();
   const [createLink, { isLoading: isCreatingLink }] = useCreateFooterLinkMutation();
   const [updateLink, { isLoading: isUpdatingLink }] = useUpdateFooterLinkMutation();
@@ -76,6 +76,7 @@ const AdminDashboardScreen = () => {
   const [articleContactPhone, setArticleContactPhone] = useState('');
   const [editingArticle, setEditingArticle] = useState(null);
   const [editArticleForm, setEditArticleForm] = useState({});
+  const [isUploading, setIsUploading] = useState(false); // <-- ADDED FOR DIRECT UPLOADS
 
   useEffect(() => {
     if (settings) {
@@ -103,6 +104,7 @@ const AdminDashboardScreen = () => {
       }
     }
   };
+
   const handleDeleteCourse = async (courseId) => {
     if (window.confirm('Are you sure?')) {
       try {
@@ -114,6 +116,7 @@ const AdminDashboardScreen = () => {
       }
     }
   };
+
   const handleStudentRegToggle = async () => {
     if (!settings) return;
     try {
@@ -208,36 +211,79 @@ const AdminDashboardScreen = () => {
       toast.error(err?.data?.message || err.error);
     }
   };
-  
+
+  // --- THIS IS THE DEFINITIVE FIX ---
   const handleCreateArticle = async (e) => {
     e.preventDefault();
     if (!articleFile) {
-      return toast.error('A PDF file is required.');
+      return toast.error('An Article PDF File is required.');
     }
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = 'lms_unsigned_preset';
+
+    if (!cloudName) {
+      toast.error("Upload configuration error. Please contact support.");
+      console.error("VITE_CLOUDINARY_CLOUD_NAME environment variable is not set.");
+      return;
+    }
+
+    setIsUploading(true);
+    const uploadToastId = toast.info('Uploading article PDF...', { autoClose: false, closeButton: false });
+
     try {
       const formData = new FormData();
       formData.append('file', articleFile);
-      const uploadRes = await uploadFile(formData).unwrap();
+      formData.append('upload_preset', uploadPreset);
+      formData.append('folder', 'lms_uploads');
+
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
+      
+      const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            toast.update(uploadToastId, { render: `Uploading PDF: ${percentCompleted}%` });
+          }
+        }
+      });
+      
+      const { secure_url: fileUrl, public_id: filePublicId } = cloudinaryResponse.data;
+
+      toast.update(uploadToastId, { render: 'Saving article...' });
       await createArticle({
         title: articleTitle,
         description: articleDescription,
-        fileUrl: uploadRes.url,
+        fileUrl,
+        filePublicId,
         publicPages: articlePublicPages,
         contactEmail: articleContactEmail,
         contactPhone: articleContactPhone,
       }).unwrap();
-      toast.success('Article created');
+
+      toast.dismiss(uploadToastId);
+      toast.success('Article created successfully!');
+      refetchArticles();
+      
       setArticleTitle('');
       setArticleDescription('');
       setArticleFile(null);
       setArticlePublicPages(1);
       setArticleContactEmail('');
       setArticleContactPhone('');
-      document.getElementById('articleFile').value = null;
+      if (document.getElementById('articleFile')) {
+        document.getElementById('articleFile').value = null;
+      }
+
     } catch (err) {
-      toast.error(err?.data?.message || err.error);
+      toast.dismiss(uploadToastId);
+      console.error('Article creation failed:', err);
+      toast.error(err.response?.data?.message || 'Failed to create article.');
+    } finally {
+      setIsUploading(false);
     }
   };
+
 
   const handleDeleteArticle = async (id) => {
     if (window.confirm('Are you sure?')) {
@@ -365,7 +411,7 @@ const AdminDashboardScreen = () => {
                     <div><label htmlFor="articlePublicPages" className="block mb-1 font-bold text-gray-700">Number of Public Pages</label><input type="number" min="1" id="articlePublicPages" value={articlePublicPages} onChange={(e) => setArticlePublicPages(Number(e.target.value))} className="w-full px-3 py-2 border rounded" required /></div>
                     <div><label htmlFor="articleContactEmail" className="block mb-1 font-bold text-gray-700">Contact Email for Full Version</label><input type="email" id="articleContactEmail" value={articleContactEmail} onChange={(e) => setArticleContactEmail(e.target.value)} className="w-full px-3 py-2 border rounded" required /></div>
                     <div><label htmlFor="articleContactPhone" className="block mb-1 font-bold text-gray-700">Contact Phone for Full Version</label><input type="tel" id="articleContactPhone" value={articleContactPhone} onChange={(e) => setArticleContactPhone(e.target.value)} className="w-full px-3 py-2 border rounded" required /></div>
-                    <button type="submit" disabled={isCreatingArticle || isUploading} className="w-full py-2 text-white bg-blue-500 rounded">{isCreatingArticle || isUploading ? 'Creating...' : 'Create Article'}</button>
+                    <button type="submit" disabled={isCreatingArticle || isUploading} className="w-full py-2 text-white bg-blue-500 rounded">{isCreatingArticle || isUploading ? 'Processing...' : 'Create Article'}</button>
                 </form>
                 <div className="p-6 space-y-4 bg-white rounded-lg shadow-md">
                     <h2 className="text-2xl font-bold">Existing Articles</h2>

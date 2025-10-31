@@ -104,16 +104,12 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   const lecture = course.lectures.id(lectureId);
   if (!lecture) { res.status(404); throw new Error('Lecture not found'); }
 
-  // --- THIS IS THE DEFINITIVE FIX ---
-  // Step 1: Securely copy the IDs before modifying anything.
   const videoPublicId = lecture.videoPublicId;
   const notesPublicId = lecture.notesPublicId;
 
-  // Step 2: Perform the database modification.
   course.lectures.pull(lectureId);
   await course.save();
 
-  // Step 3: Perform external API calls after the database is successfully updated.
   const deletionPromises = [];
   if (videoPublicId) {
     deletionPromises.push(cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }));
@@ -133,6 +129,8 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   res.json({ message: 'Lecture deleted' });
 });
 
+
+// @desc Delete a course (for Lecturers)
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -140,6 +138,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
       res.status(403); throw new Error('Not authorized');
     }
 
+    // --- THIS IS THE DEFINITIVE FIX ---
     const publicIdsToDelete = [];
     course.lectures.forEach(lecture => {
       if (lecture.videoPublicId) publicIdsToDelete.push({ id: lecture.videoPublicId, type: 'video' });
@@ -154,12 +153,13 @@ const deleteCourse = asyncHandler(async (req, res) => {
     });
 
     if (publicIdsToDelete.length > 0) {
+      console.log(`[Lecturer] Deleting ${publicIdsToDelete.length} assets from Cloudinary for course ${course.title}.`);
       try {
         await Promise.all(publicIdsToDelete.map(asset => 
           cloudinary.uploader.destroy(asset.id, { resource_type: asset.type })
         ));
       } catch (err) {
-        console.error("Error during bulk deletion of course assets:", err);
+        console.error("Error during bulk deletion of course assets by lecturer:", err);
       }
     }
     
@@ -170,6 +170,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
     res.status(404); throw new Error('Course not found');
   }
 });
+
 
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
