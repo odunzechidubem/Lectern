@@ -1,5 +1,4 @@
 // /client/src/screens/ProfileScreen.jsx
-
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
@@ -33,11 +32,15 @@ const ProfileScreen = () => {
 
   const { userInfo } = useSelector((state) => state.auth);
 
-  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateProfileMutation();
-  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
-  const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
+  const [updateProfile, { isLoading: isUpdatingProfile }] =
+    useUpdateProfileMutation();
+  const [changePassword, { isLoading: isChangingPassword }] =
+    useChangePasswordMutation();
+  const [deleteAccount, { isLoading: isDeletingAccount }] =
+    useDeleteAccountMutation();
   const [uploadFile, { isLoading: isUploadingPhoto }] = useUploadFileMutation();
-  const [requestEmailChange, { isLoading: isRequestingEmailChange }] = useRequestEmailChangeMutation();
+  const [requestEmailChange, { isLoading: isRequestingEmailChange }] =
+    useRequestEmailChangeMutation();
   const [logoutApiCall] = useLogoutMutation();
 
   useEffect(() => {
@@ -79,7 +82,7 @@ const ProfileScreen = () => {
       toast.error(err?.data?.message || err.error);
     }
   };
-  
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -88,12 +91,12 @@ const ProfileScreen = () => {
     try {
       // The uploadFile mutation hook uses the server-side upload endpoint
       const uploadRes = await uploadFile(formData).unwrap();
-      
+
       // --- THIS IS THE FIX ---
       // Send both the URL and the new Public ID to be saved in the user profile
-      const updatedUser = await updateProfile({ 
+      const updatedUser = await updateProfile({
         profileImage: uploadRes.url,
-        profileImagePublicId: uploadRes.publicId // <-- ADD THIS
+        profileImagePublicId: uploadRes.publicId, // <-- ADD THIS
       }).unwrap();
 
       dispatch(setCredentials(updatedUser));
@@ -132,60 +135,148 @@ const ProfileScreen = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-        <Meta title="My Profile | Lectern" />
-        <h1 className="mb-8 text-3xl font-bold text-gray-800">My Profile</h1>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <div className="p-6 bg-white rounded-lg shadow-md space-y-6">
-                <div className="text-center">
-                    <img src={profileImage || `https://ui-avatars.com/api/?name=${name.split(' ').join('+')}&background=random`} alt="Profile" className="object-cover w-32 h-32 mx-auto mb-4 border-4 border-gray-200 rounded-full" />
-                    <label htmlFor="photo-upload" className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded cursor-pointer hover:bg-gray-300">
-                        {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
-                    </label>
-                    <input type="file" id="photo-upload" className="hidden" onChange={handlePhotoUpload} accept="image/*" />
-                </div>
-                <form onSubmit={handleProfileUpdate}>
-                    <div className="mb-4">
-                        <label htmlFor="name" className="block mb-2 text-gray-700">Name</label>
-                        <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="email" className="block mb-2 text-gray-700">Email</label>
-                        <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                    </div>
-                    <button type="submit" disabled={isUpdatingProfile || isRequestingEmailChange} className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600">
-                        {isUpdatingProfile || isRequestingEmailChange ? 'Saving...' : 'Save Profile Changes'}
-                    </button>
-                </form>
+      <Meta title="My Profile | Lectern" />
+      <h1 className="mb-8 text-3xl font-bold text-gray-800">My Profile</h1>
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        <div className="p-6 bg-white rounded-lg shadow-md space-y-6">
+          <div className="text-center">
+            <img
+              src={
+                profileImage ||
+                `https://ui-avatars.com/api/?name=${name.split(' ').join('+')}&background=random`
+              }
+              alt="Profile"
+              className="object-cover w-32 h-32 mx-auto mb-4 border-4 border-gray-200 rounded-full"
+            />
+            <label
+              htmlFor="photo-upload"
+              className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded cursor-pointer hover:bg-gray-300"
+            >
+              {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
+            </label>
+            <input
+              type="file"
+              id="photo-upload"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              accept="image/*"
+            />
+          </div>
+          <form onSubmit={handleProfileUpdate}>
+            <div className="mb-4">
+              <label htmlFor="name" className="block mb-2 text-gray-700">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border rounded"
+              />
             </div>
-            <div className="space-y-6">
-                <div className="p-6 bg-white rounded-lg shadow-md">
-                    <h2 className="mb-4 text-2xl font-bold">Change Password</h2>
-                    <form onSubmit={handleChangePassword}>
-                        <div className="relative mb-4">
-                            <label className="block mb-2 text-gray-700">Current Password</label>
-                            <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border rounded" autoComplete="current-password" />
-                            <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7">{showCurrentPassword ? <FaEyeSlash /> : <FaEye />}</button>
-                        </div>
-                        <div className="relative mb-4">
-                            <label className="block mb-2 text-gray-700">New Password</label>
-                            <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded" autoComplete="new-password" />
-                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7">{showNewPassword ? <FaEyeSlash /> : <FaEye />}</button>
-                        </div>
-                        <div className="relative mb-4">
-                            <label className="block mb-2 text-gray-700">Confirm New Password</label>
-                            <input type={showConfirmPassword ? 'text' : 'password'} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded" autoComplete="new-password" />
-                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7">{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</button>
-                        </div>
-                        <button type="submit" disabled={isChangingPassword} className="w-full py-2 text-white bg-orange-500 rounded hover:bg-orange-600">{isChangingPassword ? 'Changing...' : 'Change Password'}</button>
-                    </form>
-                </div>
-                <div className="p-6 bg-white border-2 border-red-300 rounded-lg shadow-md">
-                    <h2 className="mb-4 text-2xl font-bold text-red-600">Danger Zone</h2>
-                    <p className="mb-4 text-gray-600">Deleting your account is a permanent action. All your data will be lost.</p>
-                    <button onClick={handleDeleteAccount} disabled={isDeletingAccount} className="w-full py-2 text-white bg-red-600 rounded hover:bg-red-700">{isDeletingAccount ? 'Deleting...' : 'Delete My Account'}</button>
-                </div>
+            <div className="mb-4">
+              <label htmlFor="email" className="block mb-2 text-gray-700">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border rounded"
+              />
             </div>
+            <button
+              type="submit"
+              disabled={isUpdatingProfile || isRequestingEmailChange}
+              className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+            >
+              {isUpdatingProfile || isRequestingEmailChange
+                ? 'Saving...'
+                : 'Save Profile Changes'}
+            </button>
+          </form>
         </div>
+        <div className="space-y-6">
+          <div className="p-6 bg-white rounded-lg shadow-md">
+            <h2 className="mb-4 text-2xl font-bold">Change Password</h2>
+            <form onSubmit={handleChangePassword}>
+              <div className="relative mb-4">
+                <label className="block mb-2 text-gray-700">Current Password</label>
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7"
+                >
+                  {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <div className="relative mb-4">
+                <label className="block mb-2 text-gray-700">New Password</label>
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7"
+                >
+                  {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <div className="relative mb-4">
+                <label className="block mb-2 text-gray-700">Confirm New Password</label>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 top-7"
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <button
+                type="submit"
+                disabled={isChangingPassword}
+                className="w-full py-2 text-white bg-orange-500 rounded hover:bg-orange-600"
+              >
+                {isChangingPassword ? 'Changing...' : 'Change Password'}
+              </button>
+            </form>
+          </div>
+          <div className="p-6 bg-white border-2 border-red-300 rounded-lg shadow-md">
+            <h2 className="mb-4 text-2xl font-bold text-red-600">Danger Zone</h2>
+            <p className="mb-4 text-gray-600">
+              Deleting your account is a permanent action. All your data will be lost.
+            </p>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+              className="w-full py-2 text-white bg-red-600 rounded hover:bg-red-700"
+            >
+              {isDeletingAccount ? 'Deleting...' : 'Delete My Account'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

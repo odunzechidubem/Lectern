@@ -1,5 +1,4 @@
 // /server/controllers/userController.js
-
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
 import Course from '../models/courseModel.js';
@@ -9,29 +8,10 @@ import Settings from '../models/settingsModel.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
-
-// ================== AUTH STATUS CHECK ==================
-// const checkAuthStatus = asyncHandler(async (req, res) => {
-//   const user = await User.findById(req.user._id);
-//   if (!user) {
-//     res.status(404);
-//     throw new Error('User not found');
-//   }
-//   res.status(200).json({
-//     _id: user._id,
-//     name: user.name,
-//     email: user.email,
-//     role: user.role,
-//   });
-// });
-
+import cloudinary from '../config/cloudinary.js';
 
 // ================== CHECK AUTH STATUS (THE NEW FUNCTION) ==================
 const checkAuthStatus = asyncHandler(async (req, res) => {
-  // The 'protect' middleware runs before this. If the JWT is valid,
-  // it attaches the user to `req.user`. If not, this function is never reached.
-  // Therefore, if we get here, the user is authenticated.
-  // We can send back the user object again so the frontend can stay in sync.
   const user = await User.findById(req.user._id).select('-password');
   res.status(200).json(user);
 });
@@ -44,6 +24,7 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Please fill out all required fields.');
   }
+
   if (password.length < 8) {
     res.status(400);
     throw new Error('Password must be at least 8 characters long.');
@@ -67,13 +48,17 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('User already exists');
   }
 
-  const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password, role });
+  const user = await User.create({
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
+    password,
+    role,
+  });
 
   if (user) {
     const verificationToken = user.createVerificationToken();
     await user.save({ validateBeforeSave: false });
 
-    // The link must point to the BACKEND API endpoint
     const verifyUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
     const message = `<p>Please verify your email by clicking on the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
@@ -102,65 +87,38 @@ const registerUser = asyncHandler(async (req, res) => {
 
 // ================== VERIFY EMAIL (DEFINITIVE DEBUGGING FIX) ==================
 const verifyEmail = asyncHandler(async (req, res) => {
-  console.log('--- [BACKEND] verifyEmail function initiated. ---');
-  
   const rawToken = req.params.token;
   if (!rawToken) {
-    console.error('[BACKEND] FAILED: No token found in URL.');
     res.status(400);
     throw new Error('Verification token is missing.');
   }
-  console.log('[BACKEND] Step 1: Raw token from URL params received.');
 
   const verificationToken = crypto
     .createHash('sha256')
     .update(rawToken)
     .digest('hex');
-  console.log('[BACKEND] Step 2: Hashed token for DB query:', verificationToken.substring(0, 10) + '...');
 
-  console.log('[BACKEND] Step 3: Querying database for user with this hashed token...');
   const user = await User.findOne({
     verificationToken,
     verificationTokenExpires: { $gt: Date.now() },
   });
 
   if (!user) {
-    console.error('[BACKEND] FAILED at Step 4: No user found with this token or token has expired.');
-    const expiredUser = await User.findOne({ verificationToken });
-    if (expiredUser) {
-        console.error('[BACKEND] DEBUG: A user was found, but their token has expired. Expiration was:', expiredUser.emailChangeTokenExpires);
-    } else {
-        console.error('[BACKEND] DEBUG: No user with this token exists in the database at all.');
-    }
     return res.redirect(`${process.env.FRONTEND_URL}/login?verified=failed`);
   }
-  console.log(`[BACKEND] Step 4: User found successfully! User: ${user.email}, Current isVerified status: ${user.isVerified}`);
 
   user.isVerified = true;
   user.verificationToken = undefined;
   user.verificationTokenExpires = undefined;
 
   try {
-    console.log('[BACKEND] Step 5: Attempting to save user...');
     await user.save();
-    console.log(`[BACKEND] SUCCESS at Step 5: User ${user.email} saved.`);
-
-    const freshlyFetchedUser = await User.findById(user._id);
-    if (freshlyFetchedUser && freshlyFetchedUser.isVerified) {
-        console.log(`[BACKEND] CONFIRMATION FETCH: User's isVerified status in DB is now: true.`);
-    } else {
-        console.error(`[BACKEND] FATAL CONFIRMATION FAILURE: User's isVerified status in DB is still false after saving!`);
-    }
-
   } catch (error) {
-    console.error('[BACKEND] FAILED at Step 5: A database error occurred during user.save()', error);
     return res.redirect(`${process.env.FRONTEND_URL}/login?verified=dberror`);
   }
 
-  console.log('[BACKEND] Step 6: Redirecting user to frontend login page...');
   return res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
 });
-
 
 // ================== LOGIN ==================
 const authUser = asyncHandler(async (req, res) => {
@@ -189,7 +147,6 @@ const authUser = asyncHandler(async (req, res) => {
   }
 
   generateToken(res, user._id);
-
   res.json({
     _id: user._id,
     name: user.name,
@@ -225,7 +182,9 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
 
 // ================== SUBMISSIONS ==================
 const getMySubmissions = asyncHandler(async (req, res) => {
-  const submissions = await Submission.find({ student: req.user._id }).sort({ createdAt: -1 });
+  const submissions = await Submission.find({ student: req.user._id }).sort({
+    createdAt: -1,
+  });
   const populatedSubmissions = await Promise.all(
     submissions.map(async (submission) => {
       const [course, assignment] = await Promise.all([
@@ -249,7 +208,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
   }
-
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
@@ -281,17 +239,14 @@ const resetPassword = asyncHandler(async (req, res) => {
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
-
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   });
-
   if (!user) {
     res.status(400);
     throw new Error('Token is invalid or has expired.');
   }
-
   try {
     user.password = req.body.password;
     user.passwordResetToken = undefined;
@@ -321,12 +276,48 @@ const getUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
+// THIS ENTIRE FUNCTION IS THE FIX
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
+
   if (user) {
+    // --- START OF THE FIX ---
+
+    // 1. Check if a new image is being uploaded AND an old one exists.
+    const isNewImageUpload = req.body.profileImagePublicId;
+    const oldImagePublicId = user.profileImagePublicId;
+
+    if (isNewImageUpload && oldImagePublicId) {
+      // 2. Delete the old image from Cloudinary.
+      try {
+        await cloudinary.uploader.destroy(oldImagePublicId);
+        console.log(
+          `Successfully deleted old Cloudinary image: ${oldImagePublicId}`
+        );
+      } catch (err) {
+        // Log the error but don't stop the update process.
+        console.error(
+          `Failed to delete old profile image from Cloudinary. Public ID: ${oldImagePublicId}`,
+          err
+        );
+      }
+    }
+
+    // 3. Update the user document with the new data.
     user.name = req.body.name || user.name;
-    user.profileImage = req.body.profileImage || user.profileImage;
+    // Only update image-related fields if they are explicitly provided.
+    if (req.body.profileImage) {
+      user.profileImage = req.body.profileImage;
+    }
+    if (req.body.profileImagePublicId) {
+      user.profileImagePublicId = req.body.profileImagePublicId;
+    }
+
+    // --- END OF THE FIX ---
+
     const updatedUser = await user.save();
+
+    // Send the updated user data back to the client.
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
@@ -343,8 +334,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!newPassword || newPassword.length < 8) {
-      res.status(400);
-      throw new Error('New password must be at least 8 characters long.');
+    res.status(400);
+    throw new Error('New password must be at least 8 characters long.');
   }
   const user = await User.findById(req.user._id);
   if (user && (await user.matchPassword(currentPassword))) {
@@ -360,6 +351,21 @@ const changeUserPassword = asyncHandler(async (req, res) => {
 const deleteUserAccount = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (user) {
+    // If the user has a profile image, delete it from Cloudinary
+    if (user.profileImagePublicId) {
+      try {
+        await cloudinary.uploader.destroy(user.profileImagePublicId);
+        console.log(
+          `Successfully deleted Cloudinary image for deleted user: ${user.profileImagePublicId}`
+        );
+      } catch (err) {
+        console.error(
+          `Failed to delete Cloudinary image for user ${user._id}. Continuing with account deletion.`,
+          err
+        );
+      }
+    }
+
     await user.deleteOne();
     res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
     res.json({ message: 'Account deleted successfully' });
@@ -376,12 +382,14 @@ const requestEmailChange = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('New email is required');
   }
+
   const emailExists = await User.findOne({ email: newEmail.toLowerCase() });
   if (emailExists) {
     return res.status(200).json({
       message: 'If the email is available, you will receive a verification link.',
     });
   }
+
   const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
@@ -417,8 +425,10 @@ const requestEmailChange = asyncHandler(async (req, res) => {
 });
 
 const verifyEmailChange = asyncHandler(async (req, res) => {
-  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
   const user = await User.findOne({
     emailChangeToken: hashedToken,
     emailChangeTokenExpires: { $gt: Date.now() },
@@ -443,7 +453,6 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
     user.newEmail = undefined;
     user.emailChangeToken = undefined;
     user.emailChangeTokenExpires = undefined;
-
     const updatedUser = await user.save();
 
     if (req.io && req.userSocketMap) {

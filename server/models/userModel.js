@@ -1,32 +1,34 @@
 // /server/models/userModel.js
-
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { USER_ROLES } from '../utils/constants.js';
 
-const userSchema = mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true, minlength: 8 },
-  role: {
-    type: String,
-    required: true,
-    enum: Object.values(USER_ROLES),
-    default: USER_ROLES.STUDENT,
+const userSchema = mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, required: true, minlength: 8 },
+    role: {
+      type: String,
+      required: true,
+      enum: Object.values(USER_ROLES),
+      default: USER_ROLES.STUDENT,
+    },
+    profileImage: { type: String, required: false, default: '' },
+    profileImagePublicId: { type: String }, // <-- ADDED THIS LINE
+    isActive: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    verificationToken: String,
+    verificationTokenExpires: Date,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+    newEmail: { type: String, lowercase: true },
+    emailChangeToken: String,
+    emailChangeTokenExpires: Date,
   },
-  profileImage: { type: String, required: false, default: '' },
-  profileImagePublicId: { type: String }, // <-- ADDED THIS LINE
-  isActive: { type: Boolean, default: true },
-  isVerified: { type: Boolean, default: false },
-  verificationToken: String,
-  verificationTokenExpires: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  newEmail: { type: String, lowercase: true },
-  emailChangeToken: String,
-  emailChangeTokenExpires: Date,
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -53,7 +55,10 @@ userSchema.methods.createVerificationToken = function () {
 // Generate password reset token
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
-  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return resetToken;
 };
@@ -61,11 +66,13 @@ userSchema.methods.createPasswordResetToken = function () {
 // Generate email change token
 userSchema.methods.createEmailChangeToken = function () {
   const changeToken = crypto.randomBytes(32).toString('hex');
-  this.emailChangeToken = crypto.createHash('sha256').update(changeToken).digest('hex');
+  this.emailChangeToken = crypto
+    .createHash('sha256')
+    .update(changeToken)
+    .digest('hex');
   this.emailChangeTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return changeToken;
 };
 
 const User = mongoose.model('User', userSchema);
-
 export default User;
