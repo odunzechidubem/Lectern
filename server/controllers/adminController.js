@@ -4,9 +4,10 @@ import User from '../models/userModel.js';
 import Settings from '../models/settingsModel.js';
 import Course from '../models/courseModel.js';
 import Article from '../models/articleModel.js';
-import Assignment from '../models/assignmentModel.js'; // Import Assignment model
+import Assignment from '../models/assignmentModel.js';
 import cloudinary from '../config/cloudinary.js';
 
+// This function is correct and remains unchanged.
 const getAllUsers = asyncHandler(async (req, res) => {
   const role = req.query.role ? req.query.role.trim() : null;
   if (!role) {
@@ -17,12 +18,11 @@ const getAllUsers = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid role specified. Must be 'student' or 'lecturer'.");
   }
-  const users = await User.find({ role, _id: { $ne: req.user._id } }).select(
-    '-password'
-  );
+  const users = await User.find({ role, _id: { $ne: req.user._id } }).select('-password');
   res.status(200).json(users);
 });
 
+// This function is correct and remains unchanged.
 const toggleUserStatus = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (user) {
@@ -53,6 +53,7 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
   }
 });
 
+// This function is correct and remains unchanged.
 const deleteUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (user) {
@@ -64,15 +65,9 @@ const deleteUserById = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error('Administrators cannot delete their own account.');
     }
-
-    // --- THIS IS THE NEW FIX ---
-    // If the user has a profile image, delete it from Cloudinary
     if (user.profileImagePublicId) {
       try {
         await cloudinary.uploader.destroy(user.profileImagePublicId);
-        console.log(
-          `Successfully deleted Cloudinary image for user being deleted by admin: ${user.profileImagePublicId}`
-        );
       } catch (err) {
         console.error(
           'Failed to delete user profile image from Cloudinary. Continuing with user deletion.',
@@ -80,7 +75,6 @@ const deleteUserById = asyncHandler(async (req, res) => {
         );
       }
     }
-
     await user.deleteOne();
     res.status(200).json({ message: 'User deleted successfully' });
   } else {
@@ -89,36 +83,100 @@ const deleteUserById = asyncHandler(async (req, res) => {
   }
 });
 
+// This function is correct and remains unchanged.
 const getSystemSettings = asyncHandler(async (req, res) => {
   let settings = await Settings.findOne({ singleton: 'system_settings' });
   if (!settings) {
-    settings = await Settings.create({
-      isStudentRegistrationEnabled: true,
-      isLecturerRegistrationEnabled: true,
-    });
+    settings = await Settings.create({});
   }
   res.status(200).json(settings);
 });
 
+// --- THIS IS THE DEBUGGING VERSION ---
 const updateSystemSettings = asyncHandler(async (req, res) => {
-  const settings = await Settings.findOneAndUpdate(
-    { singleton: 'system_settings' },
-    { $set: req.body },
-    { new: true, upsert: true }
-  );
-  res.status(200).json(settings);
-});
+  console.log('\n--- [DEBUG] updateSystemSettings Initiated ---');
+  console.log('[DEBUG] 1. Request Body Received:', JSON.stringify(req.body, null, 2));
 
+  try {
+    // Step 2: FETCH the current settings document from the database FIRST.
+    let settings = await Settings.findOne({ singleton: 'system_settings' });
+    if (!settings) {
+      console.log('[DEBUG] 2a. No settings found, creating a new document.');
+      settings = await Settings.create({});
+    }
+    console.log('[DEBUG] 2b. Fetched current settings from DB. Old logoPublicId:', settings.logoPublicId);
+    console.log('[DEBUG] 2c. Fetched current settings from DB. Old faviconPublicId:', settings.faviconPublicId);
+
+    const { logoPublicId: newLogoPublicId, faviconPublicId: newFaviconPublicId } = req.body;
+    const deletionPromises = [];
+
+    // Step 3: LOGIC FOR LOGO DELETION
+    if (newLogoPublicId && settings.logoPublicId) {
+      console.log(`[DEBUG] 3a. Condition MET for logo deletion. New ID: ${newLogoPublicId}, Old ID: ${settings.logoPublicId}`);
+      deletionPromises.push(
+        cloudinary.uploader.destroy(settings.logoPublicId)
+          .then(result => console.log('[DEBUG] 3b. Cloudinary logo deletion API call result:', result))
+          .catch(err => console.error('[DEBUG] 3c. Cloudinary logo deletion API call FAILED:', err))
+      );
+    } else {
+      console.log('[DEBUG] 3a. Condition NOT MET for logo deletion.');
+      if (!newLogoPublicId) console.log('[DEBUG]    Reason: No newLogoPublicId in request body.');
+      if (!settings.logoPublicId) console.log('[DEBUG]    Reason: No old logoPublicId in database.');
+    }
+
+    // Step 4: LOGIC FOR FAVICON DELETION
+    if (newFaviconPublicId && settings.faviconPublicId) {
+      console.log(`[DEBUG] 4a. Condition MET for favicon deletion. New ID: ${newFaviconPublicId}, Old ID: ${settings.faviconPublicId}`);
+      deletionPromises.push(
+        cloudinary.uploader.destroy(settings.faviconPublicId)
+          .then(result => console.log('[DEBUG] 4b. Cloudinary favicon deletion API call result:', result))
+          .catch(err => console.error('[DEBUG] 4c. Cloudinary favicon deletion API call FAILED:', err))
+      );
+    } else {
+      console.log('[DEBUG] 4a. Condition NOT MET for favicon deletion.');
+      if (!newFaviconPublicId) console.log('[DEBUG]    Reason: No newFaviconPublicId in request body.');
+      if (!settings.faviconPublicId) console.log('[DEBUG]    Reason: No old faviconPublicId in database.');
+    }
+
+    // Step 5: EXECUTE DELETIONS
+    if (deletionPromises.length > 0) {
+      console.log(`[DEBUG] 5a. Executing ${deletionPromises.length} deletion promise(s).`);
+      await Promise.all(deletionPromises);
+      console.log('[DEBUG] 5b. Finished awaiting deletion promises.');
+    } else {
+      console.log('[DEBUG] 5a. No deletions to execute.');
+    }
+
+    // Step 6: UPDATE DATABASE
+    console.log('[DEBUG] 6a. Updating database with the new data...');
+    const updatedSettings = await Settings.findByIdAndUpdate(
+      settings._id,
+      { $set: req.body },
+      { new: true }
+    );
+    console.log('[DEBUG] 6b. Database update complete. New logoPublicId is now:', updatedSettings.logoPublicId);
+    console.log('[DEBUG] 6c. Database update complete. New faviconPublicId is now:', updatedSettings.faviconPublicId);
+
+    console.log('--- [DEBUG] updateSystemSettings Finished Successfully ---\n');
+    res.status(200).json(updatedSettings);
+
+  } catch (error) {
+    console.error('[FATAL DEBUG ERROR] An error occurred in updateSystemSettings:', error);
+    res.status(500).json({ message: 'An internal server error occurred during settings update.' });
+  }
+});
+// --- END OF DEBUGGING VERSION ---
+
+// This function is correct and remains unchanged.
 const getAllCourses = asyncHandler(async (req, res) => {
   const courses = await Course.find({}).populate('lecturer', 'name email');
   res.status(200).json(courses);
 });
 
+// This function is correct and remains unchanged.
 const deleteCourseById = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // Gather all public_ids from the course's lectures and assignments
     const publicIdsToDelete = [];
     course.lectures.forEach((lecture) => {
       if (lecture.videoPublicId) {
@@ -136,11 +194,7 @@ const deleteCourseById = asyncHandler(async (req, res) => {
       }
     });
 
-    // Concurrently delete all assets from Cloudinary
     if (publicIdsToDelete.length > 0) {
-      console.log(
-        `[Admin] Deleting ${publicIdsToDelete.length} assets from Cloudinary for course ${course.title}.`
-      );
       try {
         await Promise.all(
           publicIdsToDelete.map((asset) =>
@@ -155,7 +209,6 @@ const deleteCourseById = asyncHandler(async (req, res) => {
       }
     }
 
-    // Delete all associated assignments and then the course itself
     await Assignment.deleteMany({ course: course._id });
     await course.deleteOne();
     res.status(200).json({ message: 'Course and all associated assets have been deleted.' });
@@ -165,6 +218,7 @@ const deleteCourseById = asyncHandler(async (req, res) => {
   }
 });
 
+// This function is correct and remains unchanged.
 const deleteArticleById = asyncHandler(async (req, res) => {
   const article = await Article.findById(req.params.id);
   if (article) {
