@@ -92,80 +92,64 @@ const getSystemSettings = asyncHandler(async (req, res) => {
   res.status(200).json(settings);
 });
 
-// --- THIS IS THE DEBUGGING VERSION ---
+// --- THIS IS THE DEFINITIVE AND FINAL FIX ---
+// The logic is now identical to the working profile photo update logic.
 const updateSystemSettings = asyncHandler(async (req, res) => {
-  console.log('\n--- [DEBUG] updateSystemSettings Initiated ---');
-  console.log('[DEBUG] 1. Request Body Received:', JSON.stringify(req.body, null, 2));
-
-  try {
-    // Step 2: FETCH the current settings document from the database FIRST.
-    let settings = await Settings.findOne({ singleton: 'system_settings' });
-    if (!settings) {
-      console.log('[DEBUG] 2a. No settings found, creating a new document.');
-      settings = await Settings.create({});
-    }
-    console.log('[DEBUG] 2b. Fetched current settings from DB. Old logoPublicId:', settings.logoPublicId);
-    console.log('[DEBUG] 2c. Fetched current settings from DB. Old faviconPublicId:', settings.faviconPublicId);
-
-    const { logoPublicId: newLogoPublicId, faviconPublicId: newFaviconPublicId } = req.body;
-    const deletionPromises = [];
-
-    // Step 3: LOGIC FOR LOGO DELETION
-    if (newLogoPublicId && settings.logoPublicId) {
-      console.log(`[DEBUG] 3a. Condition MET for logo deletion. New ID: ${newLogoPublicId}, Old ID: ${settings.logoPublicId}`);
-      deletionPromises.push(
-        cloudinary.uploader.destroy(settings.logoPublicId)
-          .then(result => console.log('[DEBUG] 3b. Cloudinary logo deletion API call result:', result))
-          .catch(err => console.error('[DEBUG] 3c. Cloudinary logo deletion API call FAILED:', err))
-      );
-    } else {
-      console.log('[DEBUG] 3a. Condition NOT MET for logo deletion.');
-      if (!newLogoPublicId) console.log('[DEBUG]    Reason: No newLogoPublicId in request body.');
-      if (!settings.logoPublicId) console.log('[DEBUG]    Reason: No old logoPublicId in database.');
-    }
-
-    // Step 4: LOGIC FOR FAVICON DELETION
-    if (newFaviconPublicId && settings.faviconPublicId) {
-      console.log(`[DEBUG] 4a. Condition MET for favicon deletion. New ID: ${newFaviconPublicId}, Old ID: ${settings.faviconPublicId}`);
-      deletionPromises.push(
-        cloudinary.uploader.destroy(settings.faviconPublicId)
-          .then(result => console.log('[DEBUG] 4b. Cloudinary favicon deletion API call result:', result))
-          .catch(err => console.error('[DEBUG] 4c. Cloudinary favicon deletion API call FAILED:', err))
-      );
-    } else {
-      console.log('[DEBUG] 4a. Condition NOT MET for favicon deletion.');
-      if (!newFaviconPublicId) console.log('[DEBUG]    Reason: No newFaviconPublicId in request body.');
-      if (!settings.faviconPublicId) console.log('[DEBUG]    Reason: No old faviconPublicId in database.');
-    }
-
-    // Step 5: EXECUTE DELETIONS
-    if (deletionPromises.length > 0) {
-      console.log(`[DEBUG] 5a. Executing ${deletionPromises.length} deletion promise(s).`);
-      await Promise.all(deletionPromises);
-      console.log('[DEBUG] 5b. Finished awaiting deletion promises.');
-    } else {
-      console.log('[DEBUG] 5a. No deletions to execute.');
-    }
-
-    // Step 6: UPDATE DATABASE
-    console.log('[DEBUG] 6a. Updating database with the new data...');
-    const updatedSettings = await Settings.findByIdAndUpdate(
-      settings._id,
-      { $set: req.body },
-      { new: true }
-    );
-    console.log('[DEBUG] 6b. Database update complete. New logoPublicId is now:', updatedSettings.logoPublicId);
-    console.log('[DEBUG] 6c. Database update complete. New faviconPublicId is now:', updatedSettings.faviconPublicId);
-
-    console.log('--- [DEBUG] updateSystemSettings Finished Successfully ---\n');
-    res.status(200).json(updatedSettings);
-
-  } catch (error) {
-    console.error('[FATAL DEBUG ERROR] An error occurred in updateSystemSettings:', error);
-    res.status(500).json({ message: 'An internal server error occurred during settings update.' });
+  // Step 1: FETCH the existing settings document first.
+  let settings = await Settings.findOne({ singleton: 'system_settings' });
+  if (!settings) {
+    settings = new Settings(); // Create a new instance if one doesn't exist.
   }
+
+  // Step 2: DELETE OLD ASSETS from Cloudinary if new ones are being uploaded.
+  const { logoPublicId, faviconPublicId } = req.body;
+  const deletionPromises = [];
+
+  // Check for logo update
+  if (logoPublicId && settings.logoPublicId) {
+    console.log(`Queueing deletion for old logo: ${settings.logoPublicId}`);
+    // CRITICAL: Pass the resource_type to the destroy method.
+    deletionPromises.push(
+      cloudinary.uploader.destroy(settings.logoPublicId, {
+        resource_type: settings.logoResourceType || 'image', // Fallback to 'image'
+      })
+    );
+  }
+
+  // Check for favicon update
+  if (faviconPublicId && settings.faviconPublicId) {
+    console.log(`Queueing deletion for old favicon: ${settings.faviconPublicId}`);
+    // CRITICAL: Pass the resource_type. Favicons might be 'raw' (like SVG).
+    deletionPromises.push(
+      cloudinary.uploader.destroy(settings.faviconPublicId, {
+        resource_type: settings.faviconResourceType || 'image', // Fallback to 'image'
+      })
+    );
+  }
+
+  // Execute deletions concurrently
+  if (deletionPromises.length > 0) {
+    try {
+      await Promise.all(deletionPromises);
+      console.log('[SUCCESS] Cloudinary old asset deletion completed.');
+    } catch (err) {
+      console.error('[ERROR] Failed to delete one or more old assets from Cloudinary.', err);
+      // We log the error but continue, as updating the DB link is more important.
+    }
+  }
+  
+  // Step 3: UPDATE the settings object in memory with all data from the request.
+  Object.keys(req.body).forEach(key => {
+    settings[key] = req.body[key];
+  });
+
+  // Step 4: SAVE the updated object to the database.
+  const updatedSettings = await settings.save();
+
+  res.status(200).json(updatedSettings);
 });
-// --- END OF DEBUGGING VERSION ---
+// --- END OF FIX ---
+
 
 // This function is correct and remains unchanged.
 const getAllCourses = asyncHandler(async (req, res) => {

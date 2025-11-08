@@ -19,11 +19,14 @@ const uploadFile = asyncHandler(async (req, res) => {
       uploadStream.end(req.file.buffer);
     });
 
+    // --- DEFINITIVE FIX: Send back all necessary metadata ---
     res.status(201).json({
       message: 'File uploaded successfully',
       url: result.secure_url,
       publicId: result.public_id,
+      resourceType: result.resource_type, // Send the resource type back to the client
     });
+    // ------------------------------------------------------
   } catch (error) {
     res.status(500);
     throw new Error(`Cloudinary upload failed: ${error.message}`);

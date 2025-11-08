@@ -41,7 +41,7 @@ const RegisterScreen = () => {
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /\d/.test(password),
-      specialChar: /[@$!%*?&]/.test(password),
+      specialChar: /[@$!%*?&#]/.test(password),
     });
   }, [password]);
 
@@ -55,8 +55,6 @@ const RegisterScreen = () => {
       const res = await register({ name, email, password, role }).unwrap();
       toast.success(res.message);
       
-      // --- THE FIX ---
-      // Navigate to the login page with a state that LoginScreen can read.
       navigate('/login', { state: { fromRegistration: true } });
 
     } catch (err) {
@@ -73,7 +71,7 @@ const RegisterScreen = () => {
         <form className="w-96 p-8 mt-0 bg-white rounded shadow-md" onSubmit={submitHandler}>
           <h1 className="text-2xl font-bold mb-6 text-gray-700">Sign Up</h1>
           <div className="mb-4">
-            <label className="block text-gray-700 mb-2" htmlFor="name">Name</label>
+            <label className="block text-gray-700 mb-2" htmlFor="name">Full Name</label>
             <input type="text" id="name" className="w-full px-3 py-2 border rounded" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="mb-4">
@@ -108,7 +106,7 @@ const RegisterScreen = () => {
               <option value="lecturer">Lecturer</option>
             </select>
           </div>
-          <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center items-center" disabled={isLoading}>{isLoading ? <Loader /> : 'Register'}</button>
+          <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center items-center" disabled={isLoading}>{isLoading ? 'Registering...' : 'Register'}</button>
           <p className="mt-4 text-center text-sm text-gray-600">Already have an account?{' '}<Link to="/login" className="text-blue-500 hover:underline">Login</Link></p>
         </form>
       </div>

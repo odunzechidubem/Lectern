@@ -131,7 +131,7 @@ const LoginScreen = () => {
             className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300 flex justify-center items-center"
             disabled={isLoading}
           >
-            {isLoading ? <Loader /> : 'Sign In'}
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
           <div className="flex items-center justify-between mt-4 text-sm">
             <Link to="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</Link>

@@ -1,3 +1,4 @@
+// /server/index.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -15,12 +16,18 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import footerLinkRoutes from './routes/footerLinkRoutes.js'; 
+import footerLinkRoutes from './routes/footerLinkRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import articleRoutes from './routes/articleRoutes.js';
 
+// --- DEFINITIVE FIX: Import node-cron and the User model ---
+import cron from 'node-cron';
+import User from './models/userModel.js';
+// ---------------------------------------------------------
+
 dotenv.config();
 connectDB();
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -32,25 +39,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- FIXED CORS CONFIG ---
 const allowedOrigins = [
   process.env.DEV_FRONTEND_URL, // e.g., http://localhost:5173
-  process.env.FRONTEND_URL,     // e.g., https://lectern.site
+  process.env.FRONTEND_URL, // e.g., https://lectern.site
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like UC Browser or curl)
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          'The CORS policy for this site does not allow access from the specified Origin.';
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
         return callback(new Error(msg), false);
       }
       return callback(null, true);
     },
-    credentials: true, // allow cookies
+    credentials: true,
   })
 );
 
@@ -59,8 +63,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get('/', (req, res) => res.send('API is running successfully...'));
-
-// HEALTH CHECK ROUTE (for Render)
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
@@ -80,6 +82,38 @@ app.use('/api/articles', articleRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
+
+// --- DEFINITIVE FIX: SCHEDULED DELETION OF UNVERIFIED USERS ---
+// This cron job runs at midnight every day ('0 0 * * *').
+cron.schedule('0 0 * * *', async () => {
+  console.log('[CRON JOB] Running daily check for unverified users...');
+  try {
+    const expirationDate = new Date();
+    // Go back in time by the token validity period to find expired tokens
+    // The token expiry is 10 minutes, so we look for users older than that.
+    // A wider window (e.g., 1 hour) is safe.
+    expirationDate.setHours(expirationDate.getHours() - 1);
+
+    // Find users who are not verified AND whose expiration date is in the past.
+    const query = {
+      isVerified: false,
+      verificationTokenExpires: { $lt: new Date() },
+    };
+
+    const usersToDelete = await User.find(query);
+
+    if (usersToDelete.length > 0) {
+      console.log(`[CRON JOB] Found ${usersToDelete.length} unverified, expired user(s) to delete.`);
+      const result = await User.deleteMany(query);
+      console.log(`[CRON JOB] Successfully deleted ${result.deletedCount} user(s).`);
+    } else {
+      console.log('[CRON JOB] No expired unverified users found.');
+    }
+  } catch (error) {
+    console.error('[CRON JOB] Error deleting unverified users:', error);
+  }
+});
+// -------------------------------------------------------------
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () =>

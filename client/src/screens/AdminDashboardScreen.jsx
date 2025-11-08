@@ -9,10 +9,7 @@ import {
   useGetAllCoursesQuery,
   useDeleteCourseByIdMutation,
 } from '../slices/adminApiSlice';
-import {
-  useGetSettingsQuery,
-  useUpdateSettingsMutation,
-} from '../slices/settingsApiSlice';
+import { useGetSettingsQuery, useUpdateSettingsMutation } from '../slices/settingsApiSlice';
 import { useUploadFileMutation } from '../slices/uploadApiSlice';
 import {
   useGetFooterLinksQuery,
@@ -43,305 +40,297 @@ import {
 } from 'react-icons/fa';
 
 const AdminDashboardScreen = () => {
-    const [activeTab, setActiveTab] = useState('userManagement');
-    const [activeUserTab, setActiveUserTab] = useState('lecturers');
-    const { data: users, isLoading: isLoadingUsers, error: usersError, refetch: refetchUsers } =
-      useGetUsersByRoleQuery(activeUserTab === 'lecturers' ? 'lecturer' : 'student');
-    const [toggleUserStatus, { isLoading: isToggling }] = useToggleUserStatusMutation();
-    const [deleteUserById, { isLoading: isDeletingUser }] = useDeleteUserByIdMutation();
-    const { data: courses, isLoading: isLoadingCourses, error: coursesError, refetch: refetchCourses } =
-      useGetAllCoursesQuery();
-    const [deleteCourseById, { isLoading: isDeletingCourse }] = useDeleteCourseByIdMutation();
-    const { data: settings, isLoading: isLoadingSettings, refetch: refetchSettings } = useGetSettingsQuery();
-    const [updateSystemSettings, { isLoading: isUpdatingSettings }] = useUpdateSettingsMutation();
-    const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation(); // Renamed for clarity
-    const { data: links, isLoading: isLoadingLinks, error: linksError, refetch: refetchLinks } =
-      useGetFooterLinksQuery();
-    const [createLink, { isLoading: isCreatingLink }] = useCreateFooterLinkMutation();
-    const [updateLink, { isLoading: isUpdatingLink }] = useUpdateFooterLinkMutation();
-    const [deleteLink, { isLoading: isDeletingLink }] = useDeleteFooterLinkMutation();
-    const { data: articles, isLoading: isLoadingArticles, error: articlesError, refetch: refetchArticles } =
-      useGetArticlesQuery();
-    const [createArticle, { isLoading: isCreatingArticle }] = useCreateArticleMutation();
-    const [updateArticle, { isLoading: isUpdatingArticle }] = useUpdateArticleMutation();
-    const [deleteArticle, { isLoading: isDeletingArticle }] = useDeleteArticleMutation();
-    const [formState, setFormState] = useState({});
-    const [newLinkTitle, setNewLinkTitle] = useState('');
-    const [newLinkUrl, setNewLinkUrl] = useState('');
-    const [editingLink, setEditingLink] = useState(null);
-    const [editTitle, setEditTitle] = useState('');
-    const [editUrl, setEditUrl] = useState('');
-    const [articleTitle, setArticleTitle] = useState('');
-    const [articleDescription, setArticleDescription] = useState('');
-    const [articleFile, setArticleFile] = useState(null);
-    const [articlePublicPages, setArticlePublicPages] = useState(1);
-    const [articleContactEmail, setArticleContactEmail] = useState('');
-    const [articleContactPhone, setArticleContactPhone] = useState('');
-    const [editingArticle, setEditingArticle] = useState(null);
-    const [editArticleForm, setEditArticleForm] = useState({});
-    const [isUploading, setIsUploading] = useState(false); // <-- ADDED FOR DIRECT UPLOADS
+  // ... (all state definitions remain the same) ...
+  const [activeTab, setActiveTab] = useState('userManagement');
+  const [activeUserTab, setActiveUserTab] = useState('lecturers');
+  const { data: users, isLoading: isLoadingUsers, error: usersError, refetch: refetchUsers } =
+    useGetUsersByRoleQuery(activeUserTab === 'lecturers' ? 'lecturer' : 'student');
+  const [toggleUserStatus, { isLoading: isToggling }] = useToggleUserStatusMutation();
+  const [deleteUserById, { isLoading: isDeletingUser }] = useDeleteUserByIdMutation();
+  const { data: courses, isLoading: isLoadingCourses, error: coursesError, refetch: refetchCourses } =
+    useGetAllCoursesQuery();
+  const [deleteCourseById, { isLoading: isDeletingCourse }] = useDeleteCourseByIdMutation();
+  const { data: settings, isLoading: isLoadingSettings, refetch: refetchSettings } = useGetSettingsQuery();
+  const [updateSystemSettings, { isLoading: isUpdatingSettings }] = useUpdateSettingsMutation();
+  const [uploadFile, { isLoading: isUploadingSmallFile }] = useUploadFileMutation();
+  const { data: links, isLoading: isLoadingLinks, error: linksError, refetch: refetchLinks } =
+    useGetFooterLinksQuery();
+  const [createLink, { isLoading: isCreatingLink }] = useCreateFooterLinkMutation();
+  const [updateLink, { isLoading: isUpdatingLink }] = useUpdateFooterLinkMutation();
+  const [deleteLink, { isLoading: isDeletingLink }] = useDeleteFooterLinkMutation();
+  const { data: articles, isLoading: isLoadingArticles, error: articlesError, refetch: refetchArticles } =
+    useGetArticlesQuery();
+  const [createArticle, { isLoading: isCreatingArticle }] = useCreateArticleMutation();
+  const [updateArticle, { isLoading: isUpdatingArticle }] = useUpdateArticleMutation();
+  const [deleteArticle, { isLoading: isDeletingArticle }] = useDeleteArticleMutation();
+  const [formState, setFormState] = useState({});
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [editingLink, setEditingLink] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [articleTitle, setArticleTitle] = useState('');
+  const [articleDescription, setArticleDescription] = useState('');
+  const [articleFile, setArticleFile] = useState(null);
+  const [articlePublicPages, setArticlePublicPages] = useState(1);
+  const [articleContactEmail, setArticleContactEmail] = useState('');
+  const [articleContactPhone, setArticleContactPhone] = useState('');
+  const [editingArticle, setEditingArticle] = useState(null);
+  const [editArticleForm, setEditArticleForm] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
 
-    useEffect(() => {
-      if (settings) {
-        setFormState(settings);
-      }
-    }, [settings]);
+  useEffect(() => {
+    if (settings) {
+      setFormState(settings);
+    }
+  }, [settings]);
 
-    const handleToggle = async (userId) => {
+  const handleToggle = async (userId) => {
+    try {
+      await toggleUserStatus(userId).unwrap();
+      toast.success('User status updated');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure?')) {
       try {
-        await toggleUserStatus(userId).unwrap();
-        toast.success('User status updated');
+        await deleteUserById(userId).unwrap();
+        toast.success('User deleted');
+        refetchUsers();
       } catch (err) {
         toast.error(err?.data?.message || err.error);
       }
-    };
+    }
+  };
 
-    const handleDeleteUser = async (userId) => {
-      if (window.confirm('Are you sure?')) {
-        try {
-          await deleteUserById(userId).unwrap();
-          toast.success('User deleted');
-          refetchUsers();
-        } catch (err) {
-          toast.error(err?.data?.message || err.error);
-        }
-      }
-    };
-
-    const handleDeleteCourse = async (courseId) => {
-      if (window.confirm('Are you sure?')) {
-        try {
-          await deleteCourseById(courseId).unwrap();
-          toast.success('Course deleted');
-          refetchCourses();
-        } catch (err) {
-          toast.error(err?.data?.message || err.error);
-        }
-      }
-    };
-
-    const handleStudentRegToggle = async () => {
-      if (!settings) return;
+  const handleDeleteCourse = async (courseId) => {
+    if (window.confirm('Are you sure?')) {
       try {
-        await updateSystemSettings({
-          isStudentRegistrationEnabled: !settings.isStudentRegistrationEnabled,
-        }).unwrap();
-        toast.success('Student registration setting updated');
+        await deleteCourseById(courseId).unwrap();
+        toast.success('Course deleted');
+        refetchCourses();
       } catch (err) {
         toast.error(err?.data?.message || err.error);
       }
-    };
+    }
+  };
 
-    const handleLecturerRegToggle = async () => {
-      if (!settings) return;
+  const handleStudentRegToggle = async () => {
+    if (!settings) return;
+    try {
+      await updateSystemSettings({
+        isStudentRegistrationEnabled: !settings.isStudentRegistrationEnabled,
+      }).unwrap();
+      toast.success('Student registration setting updated');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const handleLecturerRegToggle = async () => {
+    if (!settings) return;
+    try {
+      await updateSystemSettings({
+        isLecturerRegistrationEnabled: !settings.isLecturerRegistrationEnabled,
+      }).unwrap();
+      toast.success('Lecturer registration setting updated');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  // --- DEFINITIVE FIX: Send all necessary data to the backend ---
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // The uploadFile mutation hook returns url, publicId, and resourceType
+      const res = await uploadFile(formData).unwrap();
+
+      // Dynamically create the field names for the URL, public ID, and resource type
+      const urlField = e.target.name; // e.g., 'logoUrl'
+      const baseName = urlField.replace('Url', ''); // e.g., 'logo'
+      const publicIdField = `${baseName}PublicId`; // e.g., 'logoPublicId'
+      const resourceTypeField = `${baseName}ResourceType`; // e.g., 'logoResourceType'
+
+      // Send all three pieces of information to the update endpoint
+      await updateSystemSettings({
+        [urlField]: res.url,
+        [publicIdField]: res.publicId,
+        [resourceTypeField]: res.resourceType, // Send the resource type
+      }).unwrap();
+
+      toast.success(`${e.target.dataset.label} updated successfully`);
+      refetchSettings();
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+  // --- END OF FIX ---
+
+  const handleSubmitContent = async (e) => {
+    e.preventDefault();
+    try {
+      await updateSystemSettings(formState).unwrap();
+      toast.success('Site content updated');
+      refetchSettings();
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const handleInputChange = (e) => setFormState({ ...formState, [e.target.name]: e.target.value });
+
+  const handleCreateLink = async (e) => {
+    e.preventDefault();
+    try {
+      await createLink({ title: newLinkTitle, url: newLinkUrl }).unwrap();
+      toast.success('Link created');
+      setNewLinkTitle('');
+      setNewLinkUrl('');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const handleDeleteLink = async (id) => {
+    if (window.confirm('Are you sure?')) {
       try {
-        await updateSystemSettings({
-          isLecturerRegistrationEnabled: !settings.isLecturerRegistrationEnabled,
-        }).unwrap();
-        toast.success('Lecturer registration setting updated');
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    };
-
-    // --- THIS ENTIRE FUNCTION IS THE FIX ---
-    const handleFileUpload = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        // Use the RTK Query mutation hook for server-side upload
-        const res = await uploadFile(formData).unwrap();
-
-        // Dynamically create the field names for the URL and the public ID
-        const urlField = e.target.name; // e.g., 'logoUrl'
-        const publicIdField = `${urlField.replace('Url', '')}PublicId`; // e.g., 'logoPublicId'
-
-        // Send both the URL and the public ID to the update endpoint
-        await updateSystemSettings({
-          [urlField]: res.url,
-          [publicIdField]: res.publicId,
-        }).unwrap();
-
-        toast.success(`${e.target.dataset.label} updated successfully`);
-        refetchSettings();
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    };
-    // --- END OF FIX ---
-
-    const handleSubmitContent = async (e) => {
-      e.preventDefault();
-      try {
-        await updateSystemSettings(formState).unwrap();
-        toast.success('Site content updated');
-        refetchSettings();
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    };
-
-    const handleInputChange = (e) =>
-      setFormState({ ...formState, [e.target.name]: e.target.value });
-
-    const handleCreateLink = async (e) => {
-      e.preventDefault();
-      try {
-        await createLink({ title: newLinkTitle, url: newLinkUrl }).unwrap();
-        toast.success('Link created');
-        setNewLinkTitle('');
-        setNewLinkUrl('');
-      } catch (err) {
-        toast.error(err?.data?.message || err.error);
-      }
-    };
-
-    const handleDeleteLink = async (id) => {
-      if (window.confirm('Are you sure?')) {
-        try {
-          await deleteLink(id).unwrap();
-          toast.success('Link deleted');
-          refetchLinks();
-        } catch (err) {
-          toast.error(err?.data?.message || err.error);
-        }
-      }
-    };
-
-    const handleEditClick = (link) => {
-      setEditingLink(link);
-      setEditTitle(link.title);
-      setEditUrl(link.url);
-    };
-
-    const handleUpdateLink = async (e) => {
-      e.preventDefault();
-      try {
-        await updateLink({ linkId: editingLink._id, title: editTitle, url: editUrl }).unwrap();
-        toast.success('Link updated');
-        setEditingLink(null);
+        await deleteLink(id).unwrap();
+        toast.success('Link deleted');
         refetchLinks();
       } catch (err) {
         toast.error(err?.data?.message || err.error);
       }
-    };
+    }
+  };
 
-    const handleCreateArticle = async (e) => {
-      e.preventDefault();
-      if (!articleFile) {
-        return toast.error('An Article PDF File is required.');
-      }
+  const handleEditClick = (link) => {
+    setEditingLink(link);
+    setEditTitle(link.title);
+    setEditUrl(link.url);
+  };
 
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = 'lms_unsigned_preset';
+  const handleUpdateLink = async (e) => {
+    e.preventDefault();
+    try {
+      await updateLink({ linkId: editingLink._id, title: editTitle, url: editUrl }).unwrap();
+      toast.success('Link updated');
+      setEditingLink(null);
+      refetchLinks();
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
 
-      if (!cloudName) {
-        toast.error("Upload configuration error. Please contact support.");
-        console.error("VITE_CLOUDINARY_CLOUD_NAME environment variable is not set.");
-        return;
-      }
-
-      setIsUploading(true);
-      const uploadToastId = toast.info('Uploading article PDF...', { autoClose: false, closeButton: false });
-
-      try {
-        const formData = new FormData();
-        formData.append('file', articleFile);
-        formData.append('upload_preset', uploadPreset);
-        formData.append('folder', 'lms_uploads');
-
-        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
-
-        const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              toast.update(uploadToastId, { render: `Uploading PDF: ${percentCompleted}%` });
-            }
-          },
-        });
-
-        const { secure_url: fileUrl, public_id: filePublicId } = cloudinaryResponse.data;
-
-        toast.update(uploadToastId, { render: 'Saving article...' });
-
-        await createArticle({
-          title: articleTitle,
-          description: articleDescription,
-          fileUrl,
-          filePublicId,
-          publicPages: articlePublicPages,
-          contactEmail: articleContactEmail,
-          contactPhone: articleContactPhone,
-        }).unwrap();
-
-        toast.dismiss(uploadToastId);
-        toast.success('Article created successfully!');
-        refetchArticles();
-
-        setArticleTitle('');
-        setArticleDescription('');
-        setArticleFile(null);
-        setArticlePublicPages(1);
-        setArticleContactEmail('');
-        setArticleContactPhone('');
-        if (document.getElementById('articleFile')) {
-          document.getElementById('articleFile').value = null;
-        }
-      } catch (err) {
-        toast.dismiss(uploadToastId);
-        console.error('Article creation failed:', err);
-        toast.error(err.response?.data?.message || 'Failed to create article.');
-      } finally {
-        setIsUploading(false);
-      }
-    };
-
-    const handleDeleteArticle = async (id) => {
-      if (window.confirm('Are you sure?')) {
-        try {
-          await deleteArticle(id).unwrap();
-          toast.success('Article deleted');
-        } catch (err) {
-          toast.error(err?.data?.message || err.error);
-        }
-      }
-    };
-
-    const handleEditArticleClick = (article) => {
-      setEditingArticle(article);
-      setEditArticleForm({
-        title: article.title,
-        description: article.description,
-        publicPages: article.publicPages,
-        contactEmail: article.contactEmail,
-        contactPhone: article.contactPhone,
+  const handleCreateArticle = async (e) => {
+    e.preventDefault();
+    if (!articleFile) {
+      return toast.error('An Article PDF File is required.');
+    }
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = 'lms_unsigned_preset';
+    if (!cloudName) {
+      toast.error('Upload configuration error. Please contact support.');
+      console.error('VITE_CLOUDINARY_CLOUD_NAME environment variable is not set.');
+      return;
+    }
+    setIsUploading(true);
+    const uploadToastId = toast.info('Uploading article PDF...', { autoClose: false, closeButton: false });
+    try {
+      const formData = new FormData();
+      formData.append('file', articleFile);
+      formData.append('upload_preset', uploadPreset);
+      formData.append('folder', 'lms_uploads');
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
+      const cloudinaryResponse = await axios.post(cloudinaryUrl, formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            toast.update(uploadToastId, { render: `Uploading PDF: ${percentCompleted}%` });
+          }
+        },
       });
-    };
+      const { secure_url: fileUrl, public_id: filePublicId } = cloudinaryResponse.data;
+      toast.update(uploadToastId, { render: 'Saving article...' });
+      await createArticle({
+        title: articleTitle,
+        description: articleDescription,
+        fileUrl,
+        filePublicId,
+        publicPages: articlePublicPages,
+        contactEmail: articleContactEmail,
+        contactPhone: articleContactPhone,
+      }).unwrap();
+      toast.dismiss(uploadToastId);
+      toast.success('Article created successfully!');
+      refetchArticles();
+      setArticleTitle('');
+      setArticleDescription('');
+      setArticleFile(null);
+      setArticlePublicPages(1);
+      setArticleContactEmail('');
+      setArticleContactPhone('');
+      if (document.getElementById('articleFile')) {
+        document.getElementById('articleFile').value = null;
+      }
+    } catch (err) {
+      toast.dismiss(uploadToastId);
+      console.error('Article creation failed:', err);
+      toast.error(err.response?.data?.message || 'Failed to create article.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-    const handleUpdateArticle = async (e) => {
-      e.preventDefault();
+  const handleDeleteArticle = async (id) => {
+    if (window.confirm('Are you sure?')) {
       try {
-        await updateArticle({ articleId: editingArticle._id, ...editArticleForm }).unwrap();
-        toast.success('Article updated');
-        setEditingArticle(null);
+        await deleteArticle(id).unwrap();
+        toast.success('Article deleted');
       } catch (err) {
         toast.error(err?.data?.message || err.error);
       }
-    };
+    }
+  };
 
-    const tabs = [
-      { key: 'userManagement', label: 'User Management', icon: FaUsers },
-      { key: 'courseManagement', label: 'Course Management', icon: FaBook },
-      { key: 'articles', label: 'Articles', icon: FaFileAlt },
-      { key: 'userSettings', label: 'User Settings', icon: FaCog },
-      { key: 'siteContent', label: 'Site Content', icon: FaPalette },
-      { key: 'footerLinks', label: 'Footer Links', icon: FaLink },
-    ];
+  const handleEditArticleClick = (article) => {
+    setEditingArticle(article);
+    setEditArticleForm({
+      title: article.title,
+      description: article.description,
+      publicPages: article.publicPages,
+      contactEmail: article.contactEmail,
+      contactPhone: article.contactPhone,
+    });
+  };
+
+  const handleUpdateArticle = async (e) => {
+    e.preventDefault();
+    try {
+      await updateArticle({ articleId: editingArticle._id, ...editArticleForm }).unwrap();
+      toast.success('Article updated');
+      setEditingArticle(null);
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
+  };
+
+  const tabs = [
+    { key: 'userManagement', label: 'User Management', icon: FaUsers },
+    { key: 'courseManagement', label: 'Course Management', icon: FaBook },
+    { key: 'articles', label: 'Articles', icon: FaFileAlt },
+    { key: 'userSettings', label: 'User Settings', icon: FaCog },
+    { key: 'siteContent', label: 'Site Content', icon: FaPalette },
+    { key: 'footerLinks', label: 'Footer Links', icon: FaLink },
+  ];
 
     return (
         <div>

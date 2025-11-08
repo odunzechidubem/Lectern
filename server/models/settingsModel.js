@@ -8,10 +8,12 @@ const settingsSchema = new mongoose.Schema({
   logoUrl: { type: String, default: '/logo.png' },
   faviconUrl: { type: String, default: '/vite.svg' },
 
-  // --- These fields are required for the deletion logic ---
+  // --- DEFINITIVE FIX: Added fields to store Cloudinary metadata ---
   logoPublicId: { type: String },
+  logoResourceType: { type: String }, // Crucial for correct deletion
   faviconPublicId: { type: String },
-  // --------------------------------------------------------
+  faviconResourceType: { type: String }, // Crucial for correct deletion
+  // -----------------------------------------------------------------
 
   heroTitle: { type: String, default: 'Welcome to the Lectern' },
   heroText: {
