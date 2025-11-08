@@ -113,7 +113,7 @@ cron.schedule('0 0 * * *', async () => {
     console.error('[CRON JOB] Error deleting unverified users:', error);
   }
 });
-// -------------------------------------------------------------
+// ---------------------------------------------------
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () =>
