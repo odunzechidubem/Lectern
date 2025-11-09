@@ -8,7 +8,6 @@ import { clearCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import Meta from '../components/Meta';
-import Loader from '../components/Loader';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');

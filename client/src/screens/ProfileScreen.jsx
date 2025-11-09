@@ -15,6 +15,7 @@ import Loader from '../components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Meta from '../components/Meta';
+import { USER_ROLES } from '../constants';
 
 const ProfileScreen = () => {
   const [name, setName] = useState('');
@@ -32,15 +33,11 @@ const ProfileScreen = () => {
 
   const { userInfo } = useSelector((state) => state.auth);
 
-  const [updateProfile, { isLoading: isUpdatingProfile }] =
-    useUpdateProfileMutation();
-  const [changePassword, { isLoading: isChangingPassword }] =
-    useChangePasswordMutation();
-  const [deleteAccount, { isLoading: isDeletingAccount }] =
-    useDeleteAccountMutation();
+  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateProfileMutation();
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
   const [uploadFile, { isLoading: isUploadingPhoto }] = useUploadFileMutation();
-  const [requestEmailChange, { isLoading: isRequestingEmailChange }] =
-    useRequestEmailChangeMutation();
+  const [requestEmailChange, { isLoading: isRequestingEmailChange }] = useRequestEmailChangeMutation();
   const [logoutApiCall] = useLogoutMutation();
 
   useEffect(() => {
@@ -89,16 +86,11 @@ const ProfileScreen = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      // The uploadFile mutation hook uses the server-side upload endpoint
       const uploadRes = await uploadFile(formData).unwrap();
-
-      // --- THIS IS THE FIX ---
-      // Send both the URL and the new Public ID to be saved in the user profile
       const updatedUser = await updateProfile({
         profileImage: uploadRes.url,
-        profileImagePublicId: uploadRes.publicId, // <-- ADD THIS
+        profileImagePublicId: uploadRes.publicId,
       }).unwrap();
-
       dispatch(setCredentials(updatedUser));
       toast.success('Profile photo updated');
     } catch (err) {
@@ -141,10 +133,7 @@ const ProfileScreen = () => {
         <div className="p-6 bg-white rounded-lg shadow-md space-y-6">
           <div className="text-center">
             <img
-              src={
-                profileImage ||
-                `https://ui-avatars.com/api/?name=${name.split(' ').join('+')}&background=random`
-              }
+              src={profileImage || `https://ui-avatars.com/api/?name=${name.split(' ').join('+')}&background=random`}
               alt="Profile"
               className="object-cover w-32 h-32 mx-auto mb-4 border-4 border-gray-200 rounded-full"
             />
@@ -175,6 +164,8 @@ const ProfileScreen = () => {
                 className="w-full px-3 py-2 border rounded"
               />
             </div>
+            
+            {/* --- DEFINITIVE FIX: Conditionally disable email input for admin --- */}
             <div className="mb-4">
               <label htmlFor="email" className="block mb-2 text-gray-700">
                 Email
@@ -184,17 +175,23 @@ const ProfileScreen = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded disabled:bg-gray-200 disabled:cursor-not-allowed"
+                disabled={userInfo && userInfo.role === USER_ROLES.SUPER_ADMIN}
               />
+              {userInfo && userInfo.role === USER_ROLES.SUPER_ADMIN && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Admin email cannot be changed from the profile page.
+                </p>
+              )}
             </div>
+            {/* --- END OF FIX --- */}
+
             <button
               type="submit"
               disabled={isUpdatingProfile || isRequestingEmailChange}
               className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
             >
-              {isUpdatingProfile || isRequestingEmailChange
-                ? 'Saving...'
-                : 'Save Profile Changes'}
+              {isUpdatingProfile || isRequestingEmailChange ? 'Saving...' : 'Save Profile Changes'}
             </button>
           </form>
         </div>
@@ -262,19 +259,22 @@ const ProfileScreen = () => {
               </button>
             </form>
           </div>
-          <div className="p-6 bg-white border-2 border-red-300 rounded-lg shadow-md">
-            <h2 className="mb-4 text-2xl font-bold text-red-600">Danger Zone</h2>
-            <p className="mb-4 text-gray-600">
-              Deleting your account is a permanent action. All your data will be lost.
-            </p>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={isDeletingAccount}
-              className="w-full py-2 text-white bg-red-600 rounded hover:bg-red-700"
-            >
-              {isDeletingAccount ? 'Deleting...' : 'Delete My Account'}
-            </button>
-          </div>
+
+          {userInfo && userInfo.role !== USER_ROLES.SUPER_ADMIN && (
+            <div className="p-6 bg-white border-2 border-red-300 rounded-lg shadow-md">
+              <h2 className="mb-4 text-2xl font-bold text-red-600">Danger Zone</h2>
+              <p className="mb-4 text-gray-600">
+                Deleting your account is a permanent action. All your data will be lost.
+              </p>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+                className="w-full py-2 text-white bg-red-600 rounded hover:bg-red-700"
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Delete My Account'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

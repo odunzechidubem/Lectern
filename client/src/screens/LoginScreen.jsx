@@ -1,15 +1,14 @@
 // /src/screens/LoginScreen.jsx
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../slices/usersApiSlice';
 import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Meta from '../components/Meta';
-import Message from '../components/Message'; // Import Message component
-import Loader from '../components/Loader';
+import Message from '../components/Message';
 import { USER_ROLES } from '../constants';
 
 const LoginScreen = () => {
