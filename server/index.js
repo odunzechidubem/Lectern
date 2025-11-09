@@ -25,11 +25,21 @@ import cron from 'node-cron';
 import User from './models/userModel.js';
 // ---------------------------------------------------------
 
+// --- DEFINITIVE SEO FIX: Import the prerender middleware ---
+import prerender from 'prerender-node';
+// --- END OF FIX ---
+
+
 dotenv.config();
 connectDB();
 
 const app = express();
 const httpServer = createServer(app);
+
+// --- DEFINITIVE SEO FIX: Add the prerender middleware ---
+// Make sure to set your PRERENDER_TOKEN in your Render environment
+app.use(prerender.set('prerenderToken', process.env.PRERENDER_TOKEN));
+// --- END OF FIX ---
 
 const { io, userSocketMap } = initSocketServer(httpServer);
 
