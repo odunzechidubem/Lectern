@@ -15,7 +15,6 @@ const ChatScreen = () => {
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-
   const [users, setUsers] = useState([]);
   const [showTagList, setShowTagList] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
@@ -72,6 +71,7 @@ const ChatScreen = () => {
     setNewMessage(value);
     const cursorPos = e.target.selectionStart;
     const lastAt = value.lastIndexOf("@", cursorPos - 1);
+
     if (lastAt !== -1) {
       const textAfterAt = value.slice(lastAt + 1, cursorPos);
       if (/^[a-zA-Z0-9_]*$/.test(textAfterAt)) {
@@ -142,7 +142,8 @@ const ChatScreen = () => {
   const otherTagClasses = "font-semibold text-blue-600";
 
   return (
-    <div>
+    // --- DEFINITIVE FIX: Add `relative` here to make this the positioning context ---
+    <div className="relative">
       <Meta title="Course Chat | Lectern" />
       <Link
         to={`/course/${courseId}`}
@@ -151,8 +152,24 @@ const ChatScreen = () => {
         Back to Course
       </Link>
 
-      {/* --- DEFINITIVE FIX: Added `relative` to the main container --- */}
-      <div className="relative flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
+      {/* --- DEFINITIVE FIX: The dropdown is now a sibling to the chat window, not a child --- */}
+      {showTagList && (
+        <div className="absolute bottom-20 left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
+          {users
+            .filter((u) => u.name.toLowerCase().includes(tagSearch.toLowerCase()))
+            .map((u) => (
+              <div
+                key={u._id}
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                onClick={() => handleSelectUserTag(u)}
+              >
+                @{u.name}
+              </div>
+            ))}
+        </div>
+      )}
+
+      <div className="flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">Course Chat Room</h1>
         </div>
@@ -247,25 +264,7 @@ const ChatScreen = () => {
           )}
         </div>
 
-        {/* --- DEFINITIVE FIX: Dropdown and form container --- */}
         <div className="p-4 border-t">
-          {showTagList && (
-            <div
-              className="absolute bottom-20 left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto dark:bg-gray-700 dark:border-gray-600"
-            >
-              {users
-                .filter((u) => u.name.toLowerCase().includes(tagSearch.toLowerCase()))
-                .map((u) => (
-                  <div
-                    key={u._id}
-                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
-                    onClick={() => handleSelectUserTag(u)}
-                  >
-                    @{u.name}
-                  </div>
-                ))}
-            </div>
-          )}
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
               ref={inputRef}
