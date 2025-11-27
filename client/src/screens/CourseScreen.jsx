@@ -45,13 +45,10 @@ const ChatScreen = () => {
   useEffect(() => {
     if (socket) {
       socket.emit("joinCourse", courseId);
-
       const handleNewMessage = (message) => {
         setMessages((prevMessages) => [...prevMessages, message]);
       };
-
       socket.on("newMessage", handleNewMessage);
-
       return () => {
         socket.off("newMessage", handleNewMessage);
       };
@@ -66,21 +63,17 @@ const ChatScreen = () => {
 
   useLayoutEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
   const handleTyping = (e) => {
     const value = e.target.value;
     setNewMessage(value);
-
     const cursorPos = e.target.selectionStart;
     const lastAt = value.lastIndexOf("@", cursorPos - 1);
-
     if (lastAt !== -1) {
       const textAfterAt = value.slice(lastAt + 1, cursorPos);
-
       if (/^[a-zA-Z0-9_]*$/.test(textAfterAt)) {
         setShowTagList(true);
         setTagSearch(textAfterAt);
@@ -95,16 +88,12 @@ const ChatScreen = () => {
   const handleSelectUserTag = (user) => {
     const cursorPos = inputRef.current.selectionStart;
     const value = newMessage;
-
     const lastAt = value.lastIndexOf("@", cursorPos - 1);
     const before = value.slice(0, lastAt);
     const after = value.slice(cursorPos);
-
     const newText = `${before}@${user.name} ${after}`;
-
     setNewMessage(newText);
     setShowTagList(false);
-
     setTimeout(() => {
       inputRef.current.focus();
     }, 0);
@@ -131,7 +120,6 @@ const ChatScreen = () => {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-
     if (date.toDateString() === today.toDateString()) {
       return "Today";
     } else if (date.toDateString() === yesterday.toDateString()) {
@@ -163,7 +151,8 @@ const ChatScreen = () => {
         Back to Course
       </Link>
 
-      <div className="flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
+      {/* --- DEFINITIVE FIX: Added `relative` to the main container --- */}
+      <div className="relative flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">Course Chat Room</h1>
         </div>
@@ -184,14 +173,10 @@ const ChatScreen = () => {
                 const senderName = msg.sender?.name ?? "Deleted User";
                 const senderImage =
                   msg.sender?.profileImage ||
-                  `https://ui-avatars.com/api/?name=${senderName
-                    .split(" ")
-                    .join("+")}&background=d1d5db&color=6b7280`;
-
+                  `https://ui-avatars.com/api/?name=${senderName.split(" ").join("+")}&background=d1d5db&color=6b7280`;
                 const dateLabel = formatDateLabel(msg.createdAt);
                 const showDateSeparator = dateLabel !== lastDateLabel;
                 lastDateLabel = dateLabel;
-
                 const exactTimestamp = msg.createdAt
                   ? new Date(msg.createdAt).toLocaleString([], {
                       weekday: "long",
@@ -213,17 +198,10 @@ const ChatScreen = () => {
                         <div className="flex-grow border-t border-gray-300"></div>
                       </div>
                     )}
-
                     <div className={`flex items-end gap-2 ${isMyMessage ? "justify-end" : "justify-start"}`}>
                       {!isMyMessage && (
-                        <img
-                          src={senderImage}
-                          alt={senderName}
-                          title={senderName}
-                          className="w-8 h-8 rounded-full"
-                        />
+                        <img src={senderImage} alt={senderName} title={senderName} className="w-8 h-8 rounded-full" />
                       )}
-
                       <div
                         title={exactTimestamp}
                         className={`max-w-xs p-3 rounded-lg md:max-w-md ${isMyMessage ? myMessageClasses : otherMessageClasses}`}
@@ -231,14 +209,10 @@ const ChatScreen = () => {
                         {!isMyMessage && (
                           <p className="mb-1 text-xs font-bold opacity-70">{senderName}</p>
                         )}
-
                         <p className="text-sm break-words">
                           {msg.content.split(/(@\S+)/g).map((part, i) =>
                             part.startsWith("@") ? (
-                              <span
-                                key={i}
-                                className={isMyMessage ? myTagClasses : otherTagClasses}
-                              >
+                              <span key={i} className={isMyMessage ? myTagClasses : otherTagClasses}>
                                 {part}
                               </span>
                             ) : (
@@ -246,7 +220,6 @@ const ChatScreen = () => {
                             )
                           )}
                         </p>
-
                         {msg.createdAt && (
                           <p className="mt-1 text-[10px] opacity-50">
                             {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -256,14 +229,11 @@ const ChatScreen = () => {
                           </p>
                         )}
                       </div>
-
                       {isMyMessage && (
                         <img
                           src={
                             userInfo.profileImage ||
-                            `https://ui-avatars.com/api/?name=${userInfo.name
-                              .split(" ")
-                              .join("+")}`
+                            `https://ui-avatars.com/api/?name=${userInfo.name.split(" ").join("+")}`
                           }
                           alt={userInfo.name}
                           className="w-8 h-8 rounded-full"
@@ -277,15 +247,18 @@ const ChatScreen = () => {
           )}
         </div>
 
-        <div className="p-4 border-t relative">
+        {/* --- DEFINITIVE FIX: Dropdown and form container --- */}
+        <div className="p-4 border-t">
           {showTagList && (
-            <div className="absolute bottom-full left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto">
+            <div
+              className="absolute bottom-20 left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto dark:bg-gray-700 dark:border-gray-600"
+            >
               {users
                 .filter((u) => u.name.toLowerCase().includes(tagSearch.toLowerCase()))
                 .map((u) => (
                   <div
                     key={u._id}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
                     onClick={() => handleSelectUserTag(u)}
                   >
                     @{u.name}
@@ -293,7 +266,6 @@ const ChatScreen = () => {
                 ))}
             </div>
           )}
-
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
               ref={inputRef}
