@@ -1,214 +1,321 @@
-// /src/screens/CourseScreen.jsx
-
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { toast } from "react-toastify";
-import {
-  useGetCourseDetailsQuery,
-  useEnrollInCourseMutation,
-} from "../slices/coursesApiSlice";
-import { useGetAnnouncementsForCourseQuery } from "../slices/announcementsApiSlice";
+import { useSocket } from "../context/SocketContext";
+import { useGetCourseMessagesQuery } from "../slices/chatApiSlice";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 import Meta from "../components/Meta";
-import { USER_ROLES } from "../constants"; // Corrected: Import constants
-import {
-  FaPlayCircle,
-  FaFilePdf,
-  FaClipboardList,
-  FaBullhorn,
-  FaComments,
-} from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
 
-const CourseScreen = () => {
-  const { id: courseId } = useParams();
+const ChatScreen = () => {
+  const { courseId } = useParams();
   const { userInfo } = useSelector((state) => state.auth);
+  const socket = useSocket();
+
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+
+  const [users, setUsers] = useState([]);
+  const [showTagList, setShowTagList] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const inputRef = useRef(null);
 
   const {
-    data: courseData,
+    data: initialMessages,
     isLoading,
-    refetch,
     error,
-  } = useGetCourseDetailsQuery(courseId);
-  const course = courseData; // Simplified for usage
+  } = useGetCourseMessagesQuery(courseId);
 
-  const isEnrolled = course?.students?.some((s) => s._id === userInfo?._id);
+  const chatContainerRef = useRef(null);
 
-  const { data: announcements, isLoading: isLoadingAnnouncements } =
-    useGetAnnouncementsForCourseQuery(courseId, {
-      skip: !isEnrolled && userInfo?.role !== USER_ROLES.LECTURER,
-    });
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`/api/courses/${courseId}/users`);
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
+    };
+    fetchUsers();
+  }, [courseId]);
 
-  const [enrollInCourse, { isLoading: isEnrolling }] =
-    useEnrollInCourseMutation();
+  useEffect(() => {
+    if (socket) {
+      socket.emit("joinCourse", courseId);
 
-  const handleEnroll = async () => {
-    try {
-      await enrollInCourse(courseId).unwrap();
-      toast.success("Enrolled!");
-      refetch();
-    } catch (err) {
-      toast.error(err?.data?.message || err.error);
+      const handleNewMessage = (message) => {
+        setMessages((prevMessages) => [...prevMessages, message]);
+      };
+
+      socket.on("newMessage", handleNewMessage);
+
+      return () => {
+        socket.off("newMessage", handleNewMessage);
+      };
+    }
+  }, [socket, courseId]);
+
+  useEffect(() => {
+    if (initialMessages) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages]);
+
+  useLayoutEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    const cursorPos = e.target.selectionStart;
+    const lastAt = value.lastIndexOf("@", cursorPos - 1);
+
+    if (lastAt !== -1) {
+      const textAfterAt = value.slice(lastAt + 1, cursorPos);
+
+      if (/^[a-zA-Z0-9_]*$/.test(textAfterAt)) {
+        setShowTagList(true);
+        setTagSearch(textAfterAt);
+      } else {
+        setShowTagList(false);
+      }
+    } else {
+      setShowTagList(false);
     }
   };
 
-  return (
-    <>
-      {/* --- Dynamic SEO Content --- */}
-      <Meta title={course?.title} description={course?.description} />
+  const handleSelectUserTag = (user) => {
+    const cursorPos = inputRef.current.selectionStart;
+    const value = newMessage;
 
-      <div>
-        <Link
-          to={
-            userInfo?.role === USER_ROLES.STUDENT
-              ? "/student/dashboard"
-              : userInfo?.role === USER_ROLES.LECTURER
-              ? "/"
-              : "/"
-          }
-          state={userInfo?.role === USER_ROLES.LECTURER ? { scrollToCourses: true } : {}}
-          className="inline-block px-4 py-2 mb-6 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-        >
-          Go Back
-        </Link>
-        {isLoading ? (
-          <Loader />
-        ) : error ? (
-          <Message variant="error">
-            {error?.data?.message || error.error}
-          </Message>
-        ) : course ? (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Left Section */}
-            <div className="space-y-6 lg:col-span-2">
-              {/* Course Overview */}
-              <div className="p-6 bg-white rounded-lg shadow-md">
-                <h1 className="mb-2 text-3xl font-bold">{course.title}</h1>
-                <p className="mb-4 text-sm text-gray-500">
-                  By {course?.lecturer?.name || "Deleted User"}
-                </p>
-                <p className="text-gray-700 break-words whitespace-pre-wrap break-all">{course.description}</p>
-                {(isEnrolled || userInfo?.role === USER_ROLES.LECTURER) && (
-                  <Link
-                    to={`/course/${courseId}/chat`}
-                    className="flex items-center justify-center w-full px-4 py-2 mt-4 font-semibold text-white bg-indigo-500 rounded hover:bg-indigo-600"
-                  >
-                    <FaComments className="mr-2" />
-                    Go to Course Chat Room
-                  </Link>
-                )}
-                {userInfo && userInfo.role === USER_ROLES.STUDENT && !isEnrolled && (
-                  <button
-                    onClick={handleEnroll}
-                    disabled={isEnrolling}
-                    className="w-full px-4 py-2 mt-4 font-semibold text-white bg-green-500 rounded hover:bg-green-600"
-                  >
-                    {isEnrolling ? "Enrolling..." : "Enroll Now"}
-                  </button>
-                )}
-                {userInfo && userInfo.role === USER_ROLES.STUDENT && isEnrolled && (
-                  <div className="p-3 mt-4 font-semibold text-center text-green-800 bg-green-100 rounded-md">
-                    You are enrolled in this course.
-                  </div>
-                )}
-              </div>
-              {/* Lectures */}
-              {(isEnrolled || userInfo?.role === USER_ROLES.LECTURER) && (
-                <div className="p-6 bg-white rounded-lg shadow-md">
-                  <h2 className="mb-4 text-2xl font-semibold text-gray-800">
-                    Lectures
-                  </h2>
-                  {course.lectures?.length > 0 ? (
-                    <ul className="space-y-4">
-                      {course.lectures.map((lecture, index) => (
-                        <li key={lecture._id} className="flex items-center justify-between transition-shadow bg-white">
-                          <Link to={`/course/${course._id}/lecture/${index}`} className="flex items-center flex-grow p-2 rounded-l-lg group hover:bg-gray-100">
-                            <FaPlayCircle className="mr-4 text-2xl text-blue-500 group-hover:text-blue-700" />
-                            <h3 className="font-semibold text-gray-700 group-hover:text-blue-700">
-                              {lecture.title}
-                            </h3>
-                          </Link>
-                          {lecture.notesUrl && (
-                            <a href={lecture.notesUrl} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 text-red-500 rounded-r-lg hover:text-red-700 hover:bg-gray-100">
-                              <FaFilePdf className="mr-2" />
-                              <span className="hidden sm:inline">
-                                View Notes
-                              </span>
-                            </a>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <Message>No lectures yet.</Message>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Right Section */}
+    const lastAt = value.lastIndexOf("@", cursorPos - 1);
+    const before = value.slice(0, lastAt);
+    const after = value.slice(cursorPos);
+
+    const newText = `${before}@${user.name} ${after}`;
+
+    setNewMessage(newText);
+    setShowTagList(false);
+
+    setTimeout(() => {
+      inputRef.current.focus();
+    }, 0);
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim() && socket) {
+      socket.emit("sendMessage", { courseId, content: newMessage });
+      setNewMessage("");
+      setShowTagList(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e);
+    }
+  };
+
+  const formatDateLabel = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  };
+
+  let lastDateLabel = null;
+
+  const myMessageClasses = "bg-blue-500 text-white";
+  const otherMessageClasses = "bg-gray-200 text-gray-800";
+  const myTagClasses = "font-semibold text-white";
+  const otherTagClasses = "font-semibold text-blue-600";
+
+  return (
+    <div>
+      <Meta title="Course Chat | Lectern" />
+      <Link
+        to={`/course/${courseId}`}
+        className="inline-block px-4 py-2 mb-6 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+      >
+        Back to Course
+      </Link>
+
+      <div className="flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
+        <div className="p-4 border-b">
+          <h1 className="text-xl font-bold text-gray-800">Course Chat Room</h1>
+        </div>
+
+        <div ref={chatContainerRef} className="flex-grow p-4 overflow-y-auto">
+          {isLoading ? (
+            <Loader />
+          ) : error ? (
+            <Message variant="error">{error?.data?.message || error.error}</Message>
+          ) : messages.length === 0 ? (
+            <p className="text-center text-gray-500">
+              No messages yet. Start the conversation!
+            </p>
+          ) : (
             <div className="space-y-6">
-              {(isEnrolled || userInfo?.role === USER_ROLES.LECTURER) && (
-                <>
-                  {/* Announcements */}
-                  <div className="p-6 bg-white rounded-lg shadow-md">
-                    <h2 className="flex items-center mb-4 text-2xl font-semibold">
-                      <FaBullhorn className="mr-3 text-indigo-500" />
-                      Announcements
-                    </h2>
-                    {isLoadingAnnouncements ? (
-                      <Loader />
-                    ) : announcements && announcements.length > 0 ? (
-                      <ul className="space-y-4">
-                        {announcements.map((ann) => (
-                          <li key={ann._id} className="pl-4 border-l-4 border-indigo-500">
-                            <p className="text-gray-800">{ann.content}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {new Date(ann.createdAt).toLocaleString()}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <Message>No announcements yet.</Message>
+              {messages.map((msg) => {
+                const isMyMessage = msg.sender?._id === userInfo._id;
+                const senderName = msg.sender?.name ?? "Deleted User";
+                const senderImage =
+                  msg.sender?.profileImage ||
+                  `https://ui-avatars.com/api/?name=${senderName
+                    .split(" ")
+                    .join("+")}&background=d1d5db&color=6b7280`;
+
+                const dateLabel = formatDateLabel(msg.createdAt);
+                const showDateSeparator = dateLabel !== lastDateLabel;
+                lastDateLabel = dateLabel;
+
+                const exactTimestamp = msg.createdAt
+                  ? new Date(msg.createdAt).toLocaleString([], {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })
+                  : "";
+
+                return (
+                  <div key={msg._id}>
+                    {showDateSeparator && (
+                      <div className="sticky top-0 z-10 flex items-center my-2">
+                        <div className="flex-grow border-t border-gray-300"></div>
+                        <span className="px-3 text-xs font-medium text-gray-600">{dateLabel}</span>
+                        <div className="flex-grow border-t border-gray-300"></div>
+                      </div>
                     )}
-                  </div>
-                  {/* Assignments */}
-                  <div className="p-6 bg-white rounded-lg shadow-md">
-                    <h2 className="mb-4 text-2xl font-semibold">Assignments</h2>
-                    {course.assignments?.length > 0 ? (
-                      <ul className="space-y-3">
-                        {course.assignments.map((assignment) => (
-                          <li key={assignment._id}>
-                            <Link to={`/course/${courseId}/assignment/${assignment._id}`} className="flex items-center w-full p-3 text-left rounded-lg hover:bg-gray-100">
-                              <FaClipboardList className="flex-shrink-0 mr-4 text-purple-500" />
-                              <span className="font-medium">
-                                {assignment.title}
+
+                    <div className={`flex items-end gap-2 ${isMyMessage ? "justify-end" : "justify-start"}`}>
+                      {!isMyMessage && (
+                        <img
+                          src={senderImage}
+                          alt={senderName}
+                          title={senderName}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      )}
+
+                      <div
+                        title={exactTimestamp}
+                        className={`max-w-xs p-3 rounded-lg md:max-w-md ${isMyMessage ? myMessageClasses : otherMessageClasses}`}
+                      >
+                        {!isMyMessage && (
+                          <p className="mb-1 text-xs font-bold opacity-70">{senderName}</p>
+                        )}
+
+                        <p className="text-sm break-words">
+                          {msg.content.split(/(@\S+)/g).map((part, i) =>
+                            part.startsWith("@") ? (
+                              <span
+                                key={i}
+                                className={isMyMessage ? myTagClasses : otherTagClasses}
+                              >
+                                {part}
                               </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <Message>No assignments yet.</Message>
-                    )}
+                            ) : (
+                              part
+                            )
+                          )}
+                        </p>
+
+                        {msg.createdAt && (
+                          <p className="mt-1 text-[10px] opacity-50">
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                      </div>
+
+                      {isMyMessage && (
+                        <img
+                          src={
+                            userInfo.profileImage ||
+                            `https://ui-avatars.com/api/?name=${userInfo.name
+                              .split(" ")
+                              .join("+")}`
+                          }
+                          alt={userInfo.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      )}
+                    </div>
                   </div>
-                </>
-              )}
-              {!isEnrolled && userInfo?.role === USER_ROLES.STUDENT && (
-                <div className="p-6 bg-white rounded-lg shadow-md">
-                  <Message>
-                    Enroll in this course to view content and join the chat.
-                  </Message>
-                </div>
-              )}
+                );
+              })}
             </div>
-          </div>
-        ) : (
-          <Message variant="error">Course could not be loaded.</Message>
-        )}
+          )}
+        </div>
+
+        <div className="p-4 border-t relative">
+          {showTagList && (
+            <div className="absolute bottom-full left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto">
+              {users
+                .filter((u) => u.name.toLowerCase().includes(tagSearch.toLowerCase()))
+                .map((u) => (
+                  <div
+                    key={u._id}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSelectUserTag(u)}
+                  >
+                    @{u.name}
+                  </div>
+                ))}
+            </div>
+          )}
+
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newMessage}
+              onChange={handleTyping}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message..."
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+              aria-label="Send Message"
+            >
+              <FaPaperPlane />
+            </button>
+          </form>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default CourseScreen;
+export default ChatScreen;
