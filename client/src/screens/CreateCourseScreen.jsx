@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCreateCourseMutation } from '../slices/coursesApiSlice';
 import { toast } from 'react-toastify';
-import Loader from '../components/Loader';
-import Meta from '../components/Meta'; // Corrected: Added Meta
+import Meta from '../components/Meta';
 
 const CreateCourseScreen = () => {
   const [title, setTitle] = useState('');
@@ -65,7 +64,7 @@ const CreateCourseScreen = () => {
             className="flex items-center justify-center w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-blue-300"
             disabled={isLoading}
           >
-            {isLoading ? <Loader /> : 'Create Course'}
+            {isLoading ? 'Creating...' : 'Create Course'}
           </button>
         </form>
       </div>

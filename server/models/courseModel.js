@@ -1,5 +1,3 @@
-// /server/models/courseModel.js
-
 import mongoose from 'mongoose';
 
 const lectureSchema = mongoose.Schema({

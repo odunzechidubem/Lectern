@@ -89,7 +89,6 @@ const LoginScreen = () => {
               </Message>
             </div>
           )}
-          {/* --- END FIX --- */}
 
           <h1 className="mb-6 text-2xl font-bold text-gray-700">Sign In</h1>
           <div className="mb-4">

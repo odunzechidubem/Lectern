@@ -1,5 +1,3 @@
-// /server/controllers/courseController.js
-
 import asyncHandler from 'express-async-handler';
 import Course from '../models/courseModel.js';
 import User from '../models/userModel.js';
@@ -129,8 +127,6 @@ const deleteLectureFromCourse = asyncHandler(async (req, res) => {
   res.json({ message: 'Lecture deleted' });
 });
 
-
-// @desc Delete a course (for Lecturers)
 const deleteCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -138,7 +134,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
       res.status(403); throw new Error('Not authorized');
     }
 
-    // --- THIS IS THE DEFINITIVE FIX ---
     const publicIdsToDelete = [];
     course.lectures.forEach(lecture => {
       if (lecture.videoPublicId) publicIdsToDelete.push({ id: lecture.videoPublicId, type: 'video' });
@@ -171,7 +166,6 @@ const deleteCourse = asyncHandler(async (req, res) => {
   }
 });
 
-
 const enrollInCourse = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.id);
   if (course) {
@@ -186,6 +180,37 @@ const enrollInCourse = asyncHandler(async (req, res) => {
   }
 });
 
+// New controller: Get all course users
+const getCourseUsers = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+
+  const course = await Course.findById(courseId)
+    .populate('lecturer', 'name email role')
+    .populate('students', 'name email role');
+
+  if (!course) {
+    res.status(404);
+    throw new Error('Course not found');
+  }
+
+  const users = [
+    {
+      _id: course.lecturer._id,
+      name: course.lecturer.name,
+      email: course.lecturer.email,
+      role: 'lecturer'
+    },
+    ...course.students.map(student => ({
+      _id: student._id,
+      name: student.name,
+      email: student.email,
+      role: 'student'
+    }))
+  ];
+
+  res.json(users);
+});
+
 export {
   createCourse,
   addLectureToCourse,
@@ -196,4 +221,5 @@ export {
   enrollInCourse,
   deleteLectureFromCourse,
   deleteCourse,
+  getCourseUsers,
 };

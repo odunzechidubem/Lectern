@@ -87,7 +87,7 @@ const CourseScreen = () => {
                 <p className="mb-4 text-sm text-gray-500">
                   By {course?.lecturer?.name || "Deleted User"}
                 </p>
-                <p className="text-gray-700">{course.description}</p>
+                <p className="text-gray-700 break-words whitespace-pre-wrap break-all">{course.description}</p>
                 {(isEnrolled || userInfo?.role === USER_ROLES.LECTURER) && (
                   <Link
                     to={`/course/${courseId}/chat`}

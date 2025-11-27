@@ -16,12 +16,33 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
+  // ⬇️ TAGGING STATES
+  const [users, setUsers] = useState([]);
+  const [showTagList, setShowTagList] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const inputRef = useRef(null);
+
   const {
     data: initialMessages,
     isLoading,
     error,
   } = useGetCourseMessagesQuery(courseId);
+
   const chatContainerRef = useRef(null);
+
+  // ⬇️ FETCH COURSE USERS FOR TAGGING
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`/api/courses/${courseId}/users`);
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
+    };
+    fetchUsers();
+  }, [courseId]);
 
   useEffect(() => {
     if (socket) {
@@ -52,11 +73,51 @@ const ChatScreen = () => {
     }
   }, [messages]);
 
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    const cursorPos = e.target.selectionStart;
+    const lastAt = value.lastIndexOf("@", cursorPos - 1);
+
+    if (lastAt !== -1) {
+      const textAfterAt = value.slice(lastAt + 1, cursorPos);
+
+      if (/^[a-zA-Z0-9_]*$/.test(textAfterAt)) {
+        setShowTagList(true);
+        setTagSearch(textAfterAt);
+      } else {
+        setShowTagList(false);
+      }
+    } else {
+      setShowTagList(false);
+    }
+  };
+
+  const handleSelectUserTag = (user) => {
+    const cursorPos = inputRef.current.selectionStart;
+    const value = newMessage;
+
+    const lastAt = value.lastIndexOf("@", cursorPos - 1);
+    const before = value.slice(0, lastAt);
+    const after = value.slice(cursorPos);
+
+    const newText = `${before}@${user.name} ${after}`;
+
+    setNewMessage(newText);
+    setShowTagList(false);
+
+    setTimeout(() => {
+      inputRef.current.focus();
+    }, 0);
+  };
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (newMessage.trim() && socket) {
       socket.emit("sendMessage", { courseId, content: newMessage });
       setNewMessage("");
+      setShowTagList(false);
     }
   };
 
@@ -98,10 +159,12 @@ const ChatScreen = () => {
       >
         Back to Course
       </Link>
+
       <div className="flex flex-col bg-white rounded-lg shadow-md h-[calc(100vh-200px)]">
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">Course Chat Room</h1>
         </div>
+
         <div ref={chatContainerRef} className="flex-grow p-4 overflow-y-auto">
           {isLoading ? (
             <Loader />
@@ -151,6 +214,7 @@ const ChatScreen = () => {
                         <div className="flex-grow border-t border-gray-300"></div>
                       </div>
                     )}
+
                     <div
                       className={`flex items-end gap-2 ${
                         isMyMessage ? "justify-end" : "justify-start"
@@ -164,6 +228,7 @@ const ChatScreen = () => {
                           className="w-8 h-8 rounded-full"
                         />
                       )}
+
                       <div
                         title={exactTimestamp}
                         className={`max-w-xs p-3 rounded-lg md:max-w-md ${
@@ -177,7 +242,25 @@ const ChatScreen = () => {
                             {senderName}
                           </p>
                         )}
-                        <p className="text-sm">{msg.content}</p>
+
+                        {/* ⬇️ HIGHLIGHT @tags */}
+                        <p className="text-sm">
+                          {msg.content.split(/(@\S+)/g).map((part, i) =>
+                            part.startsWith("@") ? (
+                              <span
+                                key={i}
+                                className={`font-semibold ${
+                                  isMyMessage ? "text-white" : "text-blue-600"
+                                }`}
+                              >
+                                {part}
+                              </span>
+                            ) : (
+                              part
+                            )
+                          )}
+                        </p>
+
                         {msg.createdAt && (
                           <p className="mt-1 text-[10px] opacity-50">
                             {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -187,6 +270,7 @@ const ChatScreen = () => {
                           </p>
                         )}
                       </div>
+
                       {isMyMessage && (
                         <img
                           src={
@@ -206,12 +290,33 @@ const ChatScreen = () => {
             </div>
           )}
         </div>
-        <div className="p-4 border-t">
+
+        <div className="p-4 border-t relative">
+          {/* TAG LIST DROPDOWN */}
+          {showTagList && (
+            <div className="absolute bottom-16 bg-white border rounded shadow w-64 z-50 max-h-48 overflow-y-auto">
+              {users
+                .filter((u) =>
+                  u.name.toLowerCase().includes(tagSearch.toLowerCase())
+                )
+                .map((u) => (
+                  <div
+                    key={u._id}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSelectUserTag(u)}
+                  >
+                    @{u.name}
+                  </div>
+                ))}
+            </div>
+          )}
+
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleTyping}
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
