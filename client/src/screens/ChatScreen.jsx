@@ -153,8 +153,11 @@ const ChatScreen = () => {
       </Link>
 
       {/* --- DEFINITIVE FIX: The dropdown is now a sibling to the chat window, not a child --- */}
+      {/* It is positioned relative to the top-level div */}
       {showTagList && (
-        <div className="absolute bottom-20 left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
+        <div
+          className="absolute bottom-20 left-4 mb-2 bg-white border rounded shadow-lg w-64 z-50 max-h-48 overflow-y-auto dark:bg-gray-700 dark:border-gray-600"
+        >
           {users
             .filter((u) => u.name.toLowerCase().includes(tagSearch.toLowerCase()))
             .map((u) => (
