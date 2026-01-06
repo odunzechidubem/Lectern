@@ -105,7 +105,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="pt-4 mt-8 text-center text-gray-500 border-t border-gray-700">
-          <p>Copyright &copy; {currentYear} {settings?.siteName || ''}. All Rights Reserved.</p>
+          <p>&copy; {currentYear} {settings?.siteName || ''}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>
